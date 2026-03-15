@@ -70,6 +70,21 @@ const ACCENT_COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#
 /* ═══════════════════════════════════════════════════════
    MAIN CONFIGURATION COMPONENT
    ═══════════════════════════════════════════════════════ */
+// Helper: HH:MM to minutes
+const timeToMins = (timeStr: string) => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+// Helper: minutes to HH:MM
+const minsToTime = (mins: number) => {
+  if (!mins) return '00:00';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
 export default function Configuration() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
@@ -94,6 +109,7 @@ export default function Configuration() {
   const [addSemName, setAddSemName] = useState('');
   const [addSemBranchId, setAddSemBranchId] = useState<number | null>(null);
   const [addFacultyName, setAddFacultyName] = useState('');
+  const [addFacultyWorkload, setAddFacultyWorkload] = useState('40:00');
   const [addSubjectName, setAddSubjectName] = useState('');
   const [addSubjectHours, setAddSubjectHours] = useState('4');
   const [addRoomName, setAddRoomName] = useState('');
@@ -110,12 +126,13 @@ export default function Configuration() {
 
   /* ─── Data fetching ─── */
   const fetchAll = useCallback(async () => {
+    if (!currentConfig?.id) return;
     const [b, s, f, r, sub] = await Promise.all([
-      axios.get(`${API_URL}/branches`),
-      axios.get(`${API_URL}/semesters`),
-      axios.get(`${API_URL}/faculties`),
-      axios.get(`${API_URL}/rooms`),
-      axios.get(`${API_URL}/subjects`),
+      axios.get(`${API_URL}/branches?config_id=${currentConfig.id}`),
+      axios.get(`${API_URL}/semesters?config_id=${currentConfig.id}`),
+      axios.get(`${API_URL}/faculties?config_id=${currentConfig.id}`),
+      axios.get(`${API_URL}/rooms?config_id=${currentConfig.id}`),
+      axios.get(`${API_URL}/subjects?config_id=${currentConfig.id}`),
     ]);
     setBranches(b.data);
     setSemesters(s.data);
@@ -139,38 +156,40 @@ export default function Configuration() {
 
   /* ─── CRUD helpers ─── */
   const handleAddBranch = async () => {
-    if (!addBranchName.trim()) return;
-    await axios.post(`${API_URL}/branches`, { name: addBranchName.trim() });
+    if (!addBranchName.trim() || !currentConfig) return;
+    await axios.post(`${API_URL}/branches`, { name: addBranchName.trim(), config_id: currentConfig.id });
     setAddBranchName('');
     fetchAll();
   };
 
   const handleAddSemester = async (branchId: number) => {
-    if (!addSemName.trim()) return;
-    await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId });
+    if (!addSemName.trim() || !currentConfig) return;
+    await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId, config_id: currentConfig.id });
     setAddSemName('');
     setShowAddSem(null);
     fetchAll();
   };
 
   const handleAddFaculty = async () => {
-    if (!addFacultyName.trim()) return;
-    await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim() });
+    if (!addFacultyName.trim() || !currentConfig) return;
+    const mins = timeToMins(addFacultyWorkload);
+    await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
     setAddFacultyName('');
+    setAddFacultyWorkload('40:00');
     fetchAll();
   };
 
   const handleAddSubject = async () => {
-    if (!addSubjectName.trim() || !selectedSemId) return;
-    await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4 });
+    if (!addSubjectName.trim() || !selectedSemId || !currentConfig) return;
+    await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4, config_id: currentConfig.id });
     setAddSubjectName('');
     setAddSubjectHours('4');
     fetchAll();
   };
 
   const handleAddRoom = async () => {
-    if (!addRoomName.trim()) return;
-    await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60 });
+    if (!addRoomName.trim() || !currentConfig) return;
+    await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60, config_id: currentConfig.id });
     setAddRoomName('');
     setAddRoomCapacity('60');
     fetchAll();
@@ -183,10 +202,38 @@ export default function Configuration() {
   const confirmDeletion = async () => {
     if (!confirmDeleteObj) return;
     const { type, id } = confirmDeleteObj;
-    await axios.delete(`${API_URL}/${type}/${id}`);
-    if (type === 'semesters' && id === selectedSemId) setSelectedSemId(null);
-    setConfirmDeleteObj(null);
-    fetchAll();
+    try {
+      await axios.delete(`${API_URL}/${type}/${id}`);
+
+      // Immutable state updates instead of fetchAll() to prevent UI instability
+      if (type === 'branches') {
+        const branchSemIds = semesters.filter(s => s.branch_id === id).map(s => s.id);
+        setBranches(prev => prev.filter(b => b.id !== id));
+        setSemesters(prev => prev.filter(s => s.branch_id !== id));
+        setSubjects(prev => prev.filter(sub => !branchSemIds.includes(sub.semester_id)));
+        if (selectedSemId && branchSemIds.includes(selectedSemId)) setSelectedSemId(null);
+      } else if (type === 'semesters') {
+        setSemesters(prev => prev.filter(s => s.id !== id));
+        setSubjects(prev => prev.filter(sub => sub.semester_id !== id));
+        if (selectedSemId === id) setSelectedSemId(null);
+      } else if (type === 'subjects') {
+        setSubjects(prev => prev.filter(s => s.id !== id));
+      } else if (type === 'faculties') {
+        setFaculties(prev => prev.filter(f => f.id !== id));
+        setMappedFaculties(prev => prev.filter((f: any) => f.id !== id));
+      } else if (type === 'rooms') {
+        setRooms(prev => prev.filter(r => r.id !== id));
+      }
+
+      setConfirmDeleteObj(null);
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.detail) {
+        alert(err.response.data.detail);
+      } else {
+        alert("Failed to delete item.");
+      }
+      setConfirmDeleteObj(null);
+    }
   };
 
   const handleUnmapFaculty = async (facultyId: number) => {
@@ -198,7 +245,17 @@ export default function Configuration() {
   const handleInlineEdit = async () => {
     if (!editingItem) return;
     const { type, id, field, value } = editingItem;
-    await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
+
+    if (type === 'faculties' && field === 'complex') {
+      const parsed = JSON.parse(value);
+      await axios.put(`${API_URL}/${type}/${id}`, { 
+        name: parsed.name, 
+        weekly_workload_minutes: timeToMins(parsed.workload) 
+      });
+    } else {
+      await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
+    }
+    
     setEditingItem(null);
     fetchAll();
   };
@@ -451,7 +508,11 @@ export default function Configuration() {
               <div style={{ padding: '6px 16px', display: 'flex', gap: 6 }}>
                 <input placeholder="Faculty name…" value={addFacultyName} onChange={e => setAddFacultyName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddFaculty()}
-                  style={{ ...inputStyle, fontSize: 12, padding: '6px 10px' }} />
+                  style={{ ...inputStyle, fontSize: 12, padding: '6px 10px', flex: 1 }} />
+                <input placeholder="HH:MM" value={addFacultyWorkload} onChange={e => setAddFacultyWorkload(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddFaculty()}
+                  title="Weekly Workload (HH:MM)"
+                  style={{ ...inputStyle, width: 60, fontSize: 12, padding: '6px 4px', textAlign: 'center' }} />
                 <button onClick={handleAddFaculty} style={{ ...iconBtnStyle, background: 'rgba(99,102,241,0.15)', color: '#818cf8', fontWeight: 700, fontSize: 16, height: 30, width: 30, flexShrink: 0 }}>+</button>
               </div>
 
@@ -463,7 +524,7 @@ export default function Configuration() {
                     faculty={fac}
                     idx={idx}
                     editingItem={editingItem}
-                    onEdit={() => setEditingItem({ type: 'faculties', id: fac.id, field: 'name', value: fac.name })}
+                    onEdit={() => setEditingItem({ type: 'faculties', id: fac.id, field: 'complex', value: JSON.stringify({ name: fac.name, workload: minsToTime(fac.weekly_workload_minutes) }) })}
                     onEditChange={(val: string) => editingItem && setEditingItem({ ...editingItem, value: val })}
                     onEditSubmit={handleInlineEdit}
                     onEditCancel={() => setEditingItem(null)}
@@ -543,10 +604,24 @@ export default function Configuration() {
         {/* Custom Delete Confirmation Modal */}
         {confirmDeleteObj && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <div style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', padding: 24, borderRadius: 16, width: 320, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.2s ease' }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#f8fafc' }}>Confirm Deletion</h3>
-              <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94a3b8' }}>Are you sure you want to delete this item?</p>
+            <div style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', padding: 24, borderRadius: 16, width: confirmDeleteObj.type === 'branches' ? 380 : 320, textAlign: confirmDeleteObj.type === 'branches' ? 'left' : 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.2s ease' }}>
+              <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#f8fafc', textAlign: 'center' }}>Confirm Deletion</h3>
+              
+              {confirmDeleteObj.type === 'branches' ? (
+                <div style={{ background: 'rgba(239,68,68,0.1)', padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', marginBottom: 24 }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 13, color: '#fca5a5', fontWeight: 600 }}>Are you sure you want to delete this branch?</p>
+                  <p style={{ margin: '0 0 4px', fontSize: 12, color: '#cbd5e1' }}>Deleting a branch will remove:</p>
+                  <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 12, color: '#94a3b8' }}>
+                    <li>All semesters inside the branch</li>
+                    <li>Subjects under those semesters</li>
+                  </ul>
+                  <p style={{ margin: 0, fontSize: 12, color: '#f87171', fontWeight: 600 }}>This action cannot be undone.</p>
+                </div>
+              ) : (
+                <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94a3b8', textAlign: 'center' }}>Are you sure you want to delete this item?</p>
+              )}
+
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
                 <button onClick={confirmDeletion} style={{ flex: 1, padding: '10px 0', background: '#e11d48', border: 'none', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Delete</button>
@@ -590,29 +665,38 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
       <div style={{ width: 32, height: 32, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
         👤
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {editingItem?.type === 'faculties' && editingItem.id === faculty.id ? (
-          <input autoFocus value={editingItem.value} onChange={e => onEditChange(e.target.value)}
-            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') onEditSubmit(); if (e.key === 'Escape') onEditCancel(); }}
-            onBlur={onEditSubmit}
-            onClick={e => e.stopPropagation()}
-            onPointerDown={e => e.stopPropagation()}
-            style={{ ...inputStyle, fontSize: 12, padding: '4px 8px' }} />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <input autoFocus value={JSON.parse(editingItem.value).name} onChange={e => onEditChange(JSON.stringify({ ...JSON.parse(editingItem.value), name: e.target.value }))}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') onEditSubmit(); if (e.key === 'Escape') onEditCancel(); }}
+              onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}
+              style={{ ...inputStyle, fontSize: 12, padding: '4px 6px', flex: 1 }} />
+            <input value={JSON.parse(editingItem.value).workload} onChange={e => onEditChange(JSON.stringify({ ...JSON.parse(editingItem.value), workload: e.target.value }))}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') onEditSubmit(); if (e.key === 'Escape') onEditCancel(); }}
+              onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} title="Workload HH:MM"
+              style={{ ...inputStyle, fontSize: 11, padding: '4px', width: 44, textAlign: 'center' }} />
+          </div>
         ) : (
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faculty.name}</span>
+          <>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faculty.name}</span>
+            <span style={{ fontSize: 10, color: '#94a3b8' }}>Workload: {minsToTime(faculty.weekly_workload_minutes)} (weekly)</span>
+          </>
         )}
-        {isMapped && <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>Mapped</span>}
+        {isMapped && <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>Mapped ✓</span>}
       </div>
-      <button
-        onClick={e => { e.stopPropagation(); onEdit(); }}
-        onPointerDown={e => e.stopPropagation()}
-        style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#64748b' }}
-      >✏️</button>
-      <button
-        onClick={e => { e.stopPropagation(); onDelete(); }}
-        onPointerDown={e => e.stopPropagation()}
-        style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#64748b' }}
-      >🗑️</button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <button
+          onClick={e => { e.stopPropagation(); onEdit(); }}
+          onPointerDown={e => e.stopPropagation()}
+          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#64748b' }}
+        >✏️</button>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          onPointerDown={e => e.stopPropagation()}
+          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#64748b' }}
+        >🗑️</button>
+      </div>
     </div>
   );
 }

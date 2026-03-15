@@ -24,6 +24,7 @@ class ConfigOut(ConfigBase):
 # --- Branch ---
 class BranchBase(BaseModel):
     name: str
+    config_id: Optional[int] = None
 
 class BranchCreate(BranchBase):
     pass
@@ -40,6 +41,7 @@ class BranchOut(BranchBase):
 class SemesterBase(BaseModel):
     name: str
     branch_id: int
+    config_id: Optional[int] = None
 
 class SemesterCreate(SemesterBase):
     pass
@@ -58,6 +60,7 @@ class SubjectBase(BaseModel):
     name: str
     semester_id: int
     weekly_hours: float
+    config_id: Optional[int] = None
 
 class SubjectCreate(SubjectBase):
     pass
@@ -75,12 +78,15 @@ class SubjectOut(SubjectBase):
 # --- Faculty ---
 class FacultyBase(BaseModel):
     name: str
+    weekly_workload_minutes: int = 2400
+    config_id: Optional[int] = None
 
 class FacultyCreate(FacultyBase):
     pass
 
 class FacultyUpdate(BaseModel):
     name: Optional[str] = None
+    weekly_workload_minutes: Optional[int] = None
 
 class FacultyOut(FacultyBase):
     id: int
@@ -91,6 +97,7 @@ class FacultyOut(FacultyBase):
 class RoomBase(BaseModel):
     name: str
     capacity: int
+    config_id: Optional[int] = None
 
 class RoomCreate(RoomBase):
     pass
@@ -114,7 +121,7 @@ class AllocationBase(BaseModel):
     day_of_week: str
     start_time: time
     duration_minutes: int
-    batch_name: Optional[str] = None
+    batches: List[str] = []
 
 class AllocationCreate(AllocationBase):
     pass

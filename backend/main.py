@@ -58,8 +58,11 @@ async def create_branch(branch: schemas.BranchCreate, db: AsyncSession = Depends
     return db_branch
 
 @app.get("/api/branches", response_model=List[schemas.BranchOut])
-async def read_branches(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Branch))
+async def read_branches(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    query = select(models.Branch)
+    if config_id is not None:
+        query = query.filter(models.Branch.config_id == config_id)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @app.put("/api/branches/{branch_id}", response_model=schemas.BranchOut)
@@ -76,10 +79,33 @@ async def update_branch(branch_id: int, data: schemas.BranchUpdate, db: AsyncSes
 
 @app.delete("/api/branches/{branch_id}")
 async def delete_branch(branch_id: int, db: AsyncSession = Depends(get_db)):
+    # 1. Check if Branch exists
     result = await db.execute(select(models.Branch).filter(models.Branch.id == branch_id))
     branch = result.scalars().first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
+
+    # 2. Find all Semesters under this branch
+    sems_result = await db.execute(select(models.Semester).filter(models.Semester.branch_id == branch_id))
+    sems = sems_result.scalars().all()
+    sem_ids = [s.id for s in sems]
+
+    # 3. Check for active allocations belonging to these semesters
+    if sem_ids:
+        alloc_result = await db.execute(select(models.Allocation).filter(models.Allocation.semester_id.in_(sem_ids)))
+        if alloc_result.scalars().first():
+            raise HTTPException(status_code=400, detail="Warning: Cannot delete branch while related timetable data exists.")
+
+        # 4. Cascade delete manually (SQLite doesn't always handle cascades strictly based on pragmas)
+        # Delete Mappings
+        await db.execute(sa_delete(models.SemesterFacultyMap).where(models.SemesterFacultyMap.semester_id.in_(sem_ids)))
+        await db.execute(sa_delete(models.SemesterRoomMap).where(models.SemesterRoomMap.semester_id.in_(sem_ids)))
+        # Delete Subjects
+        await db.execute(sa_delete(models.Subject).where(models.Subject.semester_id.in_(sem_ids)))
+        # Delete Semesters
+        await db.execute(sa_delete(models.Semester).where(models.Semester.branch_id == branch_id))
+
+    # 5. Delete Branch
     await db.delete(branch)
     await db.commit()
     return {"status": "deleted"}
@@ -96,8 +122,11 @@ async def create_semester(semester: schemas.SemesterCreate, db: AsyncSession = D
     return db_semester
 
 @app.get("/api/semesters", response_model=List[schemas.SemesterOut])
-async def read_semesters(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Semester))
+async def read_semesters(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    query = select(models.Semester)
+    if config_id is not None:
+        query = query.filter(models.Semester.config_id == config_id)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @app.put("/api/semesters/{semester_id}", response_model=schemas.SemesterOut)
@@ -118,6 +147,17 @@ async def delete_semester(semester_id: int, db: AsyncSession = Depends(get_db)):
     semester = result.scalars().first()
     if not semester:
         raise HTTPException(status_code=404, detail="Semester not found")
+        
+    # Check for active allocations
+    alloc_result = await db.execute(select(models.Allocation).filter(models.Allocation.semester_id == semester_id))
+    if alloc_result.scalars().first():
+         raise HTTPException(status_code=400, detail="Warning: Cannot delete semester while related timetable data exists.")
+
+    # Cascade manual delete
+    await db.execute(sa_delete(models.SemesterFacultyMap).where(models.SemesterFacultyMap.semester_id == semester_id))
+    await db.execute(sa_delete(models.SemesterRoomMap).where(models.SemesterRoomMap.semester_id == semester_id))
+    await db.execute(sa_delete(models.Subject).where(models.Subject.semester_id == semester_id))
+
     await db.delete(semester)
     await db.commit()
     return {"status": "deleted"}
@@ -134,10 +174,12 @@ async def create_subject(subject: schemas.SubjectCreate, db: AsyncSession = Depe
     return db_subject
 
 @app.get("/api/subjects", response_model=List[schemas.SubjectOut])
-async def read_subjects(semester_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+async def read_subjects(semester_id: Optional[int] = Query(None), config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
     query = select(models.Subject)
     if semester_id is not None:
         query = query.filter(models.Subject.semester_id == semester_id)
+    if config_id is not None:
+        query = query.filter(models.Subject.config_id == config_id)
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -175,8 +217,11 @@ async def create_faculty(faculty: schemas.FacultyCreate, db: AsyncSession = Depe
     return db_faculty
 
 @app.get("/api/faculties", response_model=List[schemas.FacultyOut])
-async def read_faculties(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Faculty))
+async def read_faculties(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    query = select(models.Faculty)
+    if config_id is not None:
+        query = query.filter(models.Faculty.config_id == config_id)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @app.put("/api/faculties/{faculty_id}", response_model=schemas.FacultyOut)
@@ -213,8 +258,11 @@ async def create_room(room: schemas.RoomCreate, db: AsyncSession = Depends(get_d
     return db_room
 
 @app.get("/api/rooms", response_model=List[schemas.RoomOut])
-async def read_rooms(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Room))
+async def read_rooms(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    query = select(models.Room)
+    if config_id is not None:
+        query = query.filter(models.Room.config_id == config_id)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @app.put("/api/rooms/{room_id}", response_model=schemas.RoomOut)
@@ -328,12 +376,14 @@ async def create_allocation(allocation: schemas.AllocationCreate, db: AsyncSessi
 
         if check_overlap(new_start, new_end, ext_start, ext_end):
             if ext.faculty_id == allocation.faculty_id:
-                raise HTTPException(status_code=400, detail="Faculty collision detected!")
-            if ext.room_id == allocation.room_id:
-                raise HTTPException(status_code=400, detail="Room collision detected!")
+                raise HTTPException(status_code=400, detail="This faculty is already assigned to another session in this time slot.")
             if ext.semester_id == allocation.semester_id:
-                if ext.batch_name == allocation.batch_name or not allocation.batch_name or not ext.batch_name:
-                    raise HTTPException(status_code=400, detail="Semester/Batch collision detected!")
+                # If either has no batches specific, it implies the entire semester is occupied
+                if not ext.batches or not allocation.batches:
+                    raise HTTPException(status_code=400, detail="Semester/Batch collision detected (full class overlap)!")
+                # If they both have batches, check for intersection
+                if set(ext.batches).intersection(set(allocation.batches)):
+                    raise HTTPException(status_code=400, detail="Semester/Batch collision detected among overlapping batches!")
 
     db_allocation = models.Allocation(**allocation.model_dump())
     db.add(db_allocation)
