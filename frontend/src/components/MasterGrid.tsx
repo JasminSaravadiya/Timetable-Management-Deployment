@@ -5,6 +5,7 @@ import axios from 'axios';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
 import ExportPopup from './ExportPopup';
 import { API_URL } from '../config';
+import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function MasterGrid() {
@@ -27,28 +28,23 @@ export default function MasterGrid() {
   useEffect(() => {
     if (!currentConfig) navigate('/');
     fetchBaseData();
-    fetchAllocations();
+    loadAllocations();
   }, [currentConfig]);
 
   const fetchBaseData = async () => {
     if (!currentConfig?.id) return;
-    const [b, s, sub, fac, rm] = await Promise.all([
-      axios.get(`${API_URL}/branches?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/semesters?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/subjects?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/faculties?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/rooms?config_id=${currentConfig.id}`)
-    ]);
-    setBranches(b.data);
-    setSemesters(s.data);
-    setSubjects(sub.data);
-    setFaculties(fac.data);
-    setRooms(rm.data);
+    const data = await fetchConfigData(currentConfig.id);
+    setBranches(data.branches);
+    setSemesters(data.semesters);
+    setSubjects(data.subjects);
+    setFaculties(data.faculties);
+    setRooms(data.rooms);
   };
 
-  const fetchAllocations = async () => {
-    const res = await axios.get(`${API_URL}/allocations`);
-    setAllocations(res.data.filter((a: any) => a.config_id === currentConfig?.id));
+  const loadAllocations = async () => {
+    if (!currentConfig?.id) return;
+    const data = await fetchAllocations(currentConfig.id);
+    setAllocations(data);
   };
 
   // Generate Y-Axis Timeslots incorporating Breaks
@@ -105,7 +101,8 @@ export default function MasterGrid() {
   const handleDeleteAllocation = async (id: number) => {
     if (!confirm('Remove this allocation?')) return;
     await axios.delete(`${API_URL}/allocations/${id}`);
-    fetchAllocations();
+    invalidateCache();
+    loadAllocations();
   };
 
   return (
@@ -281,7 +278,7 @@ export default function MasterGrid() {
         <AllocationModal
           cell={selectedCell}
           onClose={() => { setIsModalOpen(false); setSelectedCell(null); }}
-          onSuccess={() => { setIsModalOpen(false); setSelectedCell(null); fetchAllocations(); }}
+          onSuccess={() => { setIsModalOpen(false); setSelectedCell(null); invalidateCache(); loadAllocations(); }}
           allocations={allocations}
         />
       )}

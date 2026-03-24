@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import type { Config } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
+import { invalidateCache } from '../apiCache';
 
 /* ────────────────── helpers ────────────────── */
 function formatTime12(t: string): string {
@@ -91,9 +92,11 @@ const SLOT_COLORS = [
    DASHBOARD COMPONENT
    ═══════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { recentConfigs, setConfig, addRecentConfig } = useStore();
+  const { setConfig } = useStore();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [allConfigs, setAllConfigs] = useState<Config[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -102,6 +105,25 @@ export default function Dashboard() {
     slot_duration_minutes: 60,
     breaks: [{ id: Date.now(), start_time: '12:00', duration_minutes: 60 }],
   });
+
+  // Fetch all configs from backend database
+  const fetchConfigs = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/config`);
+      setAllConfigs(res.data);
+    } catch (err) {
+      console.error('Failed to fetch configs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch on mount + poll every 15 seconds
+  useEffect(() => {
+    fetchConfigs();
+    const interval = setInterval(fetchConfigs, 15000);
+    return () => clearInterval(interval);
+  }, [fetchConfigs]);
 
   /* Live slot preview */
   const slots = useMemo(
@@ -120,7 +142,8 @@ export default function Dashboard() {
     try {
       const res = await axios.post(`${API_URL}/config`, formData);
       setConfig(res.data);
-      addRecentConfig(res.data);
+      invalidateCache();
+      await fetchConfigs(); // Refetch from DB so all users see it
       navigate('/configure');
     } catch (error: any) {
       console.error(error);
@@ -148,7 +171,6 @@ export default function Dashboard() {
       try {
         const config = JSON.parse(text);
         setConfig(config);
-        addRecentConfig(config);
         navigate('/configure');
       } catch {
         alert('Invalid JSON file');
@@ -366,7 +388,18 @@ export default function Dashboard() {
             paddingRight: 8,
           }}
         >
-          {recentConfigs.length === 0 ? (
+          {loading ? (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <p style={{ color: '#5E5642', fontSize: 14 }}>Loading timetables...</p>
+            </div>
+          ) : allConfigs.length === 0 ? (
             <div
               style={{
                 flex: 1,
@@ -394,14 +427,14 @@ export default function Dashboard() {
                 📋
               </div>
               <p style={{ color: '#5E5642', fontSize: 16, fontWeight: 500 }}>
-                No recent timetables yet
+                No timetables yet
               </p>
               <p style={{ color: '#5E5642', fontSize: 13 }}>
                 Click <strong style={{ color: '#8A7650' }}>"New Timetable"</strong> to get started
               </p>
             </div>
           ) : (
-            recentConfigs.map((c: Config, i: number) => (
+            allConfigs.map((c: Config, i: number) => (
               <div
                 key={c.id ?? i}
                 onClick={() => handleLoad(c)}

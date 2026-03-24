@@ -26,8 +26,9 @@ if DATABASE_URL and "asyncpg" in DATABASE_URL:
         DATABASE_URL,
         echo=False,
         pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10,
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=1800,
         connect_args={"ssl": ssl_context},
     )
 else:

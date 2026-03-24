@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 // @ts-ignore
 import { useDroppable } from '@dnd-kit/core';
 import { API_URL } from '../config';
+import { fetchConfigData, invalidateCache } from '../apiCache';
 
 /* ═══════════════════════════════════════════════════════
    SHARED STYLES
@@ -127,18 +128,12 @@ export default function Configuration() {
   /* ─── Data fetching ─── */
   const fetchAll = useCallback(async () => {
     if (!currentConfig?.id) return;
-    const [b, s, f, r, sub] = await Promise.all([
-      axios.get(`${API_URL}/branches?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/semesters?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/faculties?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/rooms?config_id=${currentConfig.id}`),
-      axios.get(`${API_URL}/subjects?config_id=${currentConfig.id}`),
-    ]);
-    setBranches(b.data);
-    setSemesters(s.data);
-    setFaculties(f.data);
-    setRooms(r.data);
-    setSubjects(sub.data);
+    const data = await fetchConfigData(currentConfig.id);
+    setBranches(data.branches);
+    setSemesters(data.semesters);
+    setFaculties(data.faculties);
+    setRooms(data.rooms);
+    setSubjects(data.subjects);
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);

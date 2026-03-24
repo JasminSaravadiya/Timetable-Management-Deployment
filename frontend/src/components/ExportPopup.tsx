@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import axios from 'axios';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
 import { API_URL } from '../config';
+import { fetchConfigData, fetchAllocations } from '../apiCache';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface ExportPopupProps {
@@ -25,20 +26,16 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
   useEffect(() => {
     if (!currentConfig?.id) return;
     const load = async () => {
-      const [b, s, f, r, sub, alloc] = await Promise.all([
-        axios.get(`${API_URL}/branches?config_id=${currentConfig.id}`),
-        axios.get(`${API_URL}/semesters?config_id=${currentConfig.id}`),
-        axios.get(`${API_URL}/faculties?config_id=${currentConfig.id}`),
-        axios.get(`${API_URL}/rooms?config_id=${currentConfig.id}`),
-        axios.get(`${API_URL}/subjects?config_id=${currentConfig.id}`),
-        axios.get(`${API_URL}/allocations`),
+      const [data, allocs] = await Promise.all([
+        fetchConfigData(currentConfig.id!),
+        fetchAllocations(currentConfig.id!),
       ]);
-      setBranches(b.data);
-      setSemesters(s.data);
-      setFaculties(f.data);
-      setRooms(r.data);
-      setSubjects(sub.data);
-      setAllocations(alloc.data.filter((a: any) => a.config_id === currentConfig.id));
+      setBranches(data.branches);
+      setSemesters(data.semesters);
+      setFaculties(data.faculties);
+      setRooms(data.rooms);
+      setSubjects(data.subjects);
+      setAllocations(allocs);
     };
     load();
   }, [currentConfig]);

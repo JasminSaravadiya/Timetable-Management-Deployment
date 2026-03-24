@@ -1,15 +1,23 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sa_delete
 from typing import List, Optional
 from datetime import datetime, timedelta, date, time
+import time as _time
+import logging
 
 import models
 import schemas
 from database import get_db, engine, Base
 
+logger = logging.getLogger("uvicorn.error")
+
 app = FastAPI(title="Master Timetable Generator API")
+
+# ── GZip compression for all responses ──
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,6 +26,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Slow query logging middleware ──
+@app.middleware("http")
+async def log_slow_requests(request: Request, call_next):
+    start = _time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (_time.perf_counter() - start) * 1000
+    if elapsed_ms > 500:
+        logger.warning(f"SLOW REQUEST: {request.method} {request.url.path} took {elapsed_ms:.0f}ms")
+    return response
+
+# ── In-memory TTL cache ──
+_cache: dict[str, tuple[float, any]] = {}
+_CACHE_TTL = 30  # seconds
+
+def _cache_get(key: str):
+    entry = _cache.get(key)
+    if entry and (_time.time() - entry[0]) < _CACHE_TTL:
+        return entry[1]
+    return None
+
+def _cache_set(key: str, value):
+    _cache[key] = (_time.time(), value)
+
+def _cache_invalidate():
+    _cache.clear()
 
 @app.on_event("startup")
 async def startup():
@@ -39,12 +73,18 @@ async def create_config(config: schemas.ConfigCreate, db: AsyncSession = Depends
     db.add(db_config)
     await db.commit()
     await db.refresh(db_config)
+    _cache_invalidate()
     return db_config
 
 @app.get("/api/config", response_model=List[schemas.ConfigOut])
 async def read_configs(db: AsyncSession = Depends(get_db)):
+    cached = _cache_get("configs")
+    if cached is not None:
+        return cached
     result = await db.execute(select(models.TimetableConfig))
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set("configs", data)
+    return data
 
 # ═══════════════════════════════════
 #  BRANCH  (full CRUD)
@@ -65,15 +105,22 @@ async def create_branch(branch: schemas.BranchCreate, db: AsyncSession = Depends
     db.add(db_branch)
     await db.commit()
     await db.refresh(db_branch)
+    _cache_invalidate()
     return db_branch
 
 @app.get("/api/branches", response_model=List[schemas.BranchOut])
 async def read_branches(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"branches:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     query = select(models.Branch)
     if config_id is not None:
         query = query.filter(models.Branch.config_id == config_id)
     result = await db.execute(query)
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 @app.put("/api/branches/{branch_id}", response_model=schemas.BranchOut)
 async def update_branch(branch_id: int, data: schemas.BranchUpdate, db: AsyncSession = Depends(get_db)):
@@ -85,6 +132,7 @@ async def update_branch(branch_id: int, data: schemas.BranchUpdate, db: AsyncSes
         setattr(branch, k, v)
     await db.commit()
     await db.refresh(branch)
+    _cache_invalidate()
     return branch
 
 @app.delete("/api/branches/{branch_id}")
@@ -118,6 +166,7 @@ async def delete_branch(branch_id: int, db: AsyncSession = Depends(get_db)):
     # 5. Delete Branch
     await db.delete(branch)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
@@ -129,15 +178,22 @@ async def create_semester(semester: schemas.SemesterCreate, db: AsyncSession = D
     db.add(db_semester)
     await db.commit()
     await db.refresh(db_semester)
+    _cache_invalidate()
     return db_semester
 
 @app.get("/api/semesters", response_model=List[schemas.SemesterOut])
 async def read_semesters(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"semesters:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     query = select(models.Semester)
     if config_id is not None:
         query = query.filter(models.Semester.config_id == config_id)
     result = await db.execute(query)
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 @app.put("/api/semesters/{semester_id}", response_model=schemas.SemesterOut)
 async def update_semester(semester_id: int, data: schemas.SemesterUpdate, db: AsyncSession = Depends(get_db)):
@@ -149,6 +205,7 @@ async def update_semester(semester_id: int, data: schemas.SemesterUpdate, db: As
         setattr(semester, k, v)
     await db.commit()
     await db.refresh(semester)
+    _cache_invalidate()
     return semester
 
 @app.delete("/api/semesters/{semester_id}")
@@ -170,6 +227,7 @@ async def delete_semester(semester_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.delete(semester)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
@@ -181,17 +239,24 @@ async def create_subject(subject: schemas.SubjectCreate, db: AsyncSession = Depe
     db.add(db_subject)
     await db.commit()
     await db.refresh(db_subject)
+    _cache_invalidate()
     return db_subject
 
 @app.get("/api/subjects", response_model=List[schemas.SubjectOut])
 async def read_subjects(semester_id: Optional[int] = Query(None), config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"subjects:{semester_id}:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     query = select(models.Subject)
     if semester_id is not None:
         query = query.filter(models.Subject.semester_id == semester_id)
     if config_id is not None:
         query = query.filter(models.Subject.config_id == config_id)
     result = await db.execute(query)
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 @app.put("/api/subjects/{subject_id}", response_model=schemas.SubjectOut)
 async def update_subject(subject_id: int, data: schemas.SubjectUpdate, db: AsyncSession = Depends(get_db)):
@@ -203,6 +268,7 @@ async def update_subject(subject_id: int, data: schemas.SubjectUpdate, db: Async
         setattr(subject, k, v)
     await db.commit()
     await db.refresh(subject)
+    _cache_invalidate()
     return subject
 
 @app.delete("/api/subjects/{subject_id}")
@@ -213,6 +279,7 @@ async def delete_subject(subject_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Subject not found")
     await db.delete(subject)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
@@ -234,15 +301,22 @@ async def create_faculty(faculty: schemas.FacultyCreate, db: AsyncSession = Depe
     db.add(db_faculty)
     await db.commit()
     await db.refresh(db_faculty)
+    _cache_invalidate()
     return db_faculty
 
 @app.get("/api/faculties", response_model=List[schemas.FacultyOut])
 async def read_faculties(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"faculties:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     query = select(models.Faculty)
     if config_id is not None:
         query = query.filter(models.Faculty.config_id == config_id)
     result = await db.execute(query)
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 @app.put("/api/faculties/{faculty_id}", response_model=schemas.FacultyOut)
 async def update_faculty(faculty_id: int, data: schemas.FacultyUpdate, db: AsyncSession = Depends(get_db)):
@@ -254,6 +328,7 @@ async def update_faculty(faculty_id: int, data: schemas.FacultyUpdate, db: Async
         setattr(faculty, k, v)
     await db.commit()
     await db.refresh(faculty)
+    _cache_invalidate()
     return faculty
 
 @app.delete("/api/faculties/{faculty_id}")
@@ -264,6 +339,7 @@ async def delete_faculty(faculty_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Faculty not found")
     await db.delete(faculty)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
@@ -285,15 +361,22 @@ async def create_room(room: schemas.RoomCreate, db: AsyncSession = Depends(get_d
     db.add(db_room)
     await db.commit()
     await db.refresh(db_room)
+    _cache_invalidate()
     return db_room
 
 @app.get("/api/rooms", response_model=List[schemas.RoomOut])
 async def read_rooms(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"rooms:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     query = select(models.Room)
     if config_id is not None:
         query = query.filter(models.Room.config_id == config_id)
     result = await db.execute(query)
-    return result.scalars().all()
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 @app.put("/api/rooms/{room_id}", response_model=schemas.RoomOut)
 async def update_room(room_id: int, data: schemas.RoomUpdate, db: AsyncSession = Depends(get_db)):
@@ -305,6 +388,7 @@ async def update_room(room_id: int, data: schemas.RoomUpdate, db: AsyncSession =
         setattr(room, k, v)
     await db.commit()
     await db.refresh(room)
+    _cache_invalidate()
     return room
 
 @app.delete("/api/rooms/{room_id}")
@@ -315,6 +399,7 @@ async def delete_room(room_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Room not found")
     await db.delete(room)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
@@ -461,6 +546,7 @@ async def update_allocation(allocation_id: int, data: schemas.AllocationUpdate, 
         
     await db.commit()
     await db.refresh(db_allocation)
+    _cache_invalidate()
     return db_allocation
 
 @app.delete("/api/allocations/{allocation_id}")
@@ -471,12 +557,22 @@ async def delete_allocation(allocation_id: int, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=404, detail="Allocation not found")
     await db.delete(allocation)
     await db.commit()
+    _cache_invalidate()
     return {"status": "deleted"}
 
 @app.get("/api/allocations", response_model=List[schemas.AllocationOut])
-async def read_allocations(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Allocation))
-    return result.scalars().all()
+async def read_allocations(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+    cache_key = f"allocations:{config_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+    query = select(models.Allocation)
+    if config_id is not None:
+        query = query.filter(models.Allocation.config_id == config_id)
+    result = await db.execute(query)
+    data = result.scalars().all()
+    _cache_set(cache_key, data)
+    return data
 
 # ═══════════════════════════════════
 #  EXPORT
