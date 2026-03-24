@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 import os
+import ssl
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,13 +17,18 @@ if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
 
 if DATABASE_URL and "asyncpg" in DATABASE_URL:
     # Production: Supabase PostgreSQL via asyncpg
+    # asyncpg requires an actual SSLContext object, not just a string
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
     engine = create_async_engine(
         DATABASE_URL,
         echo=False,
         pool_pre_ping=True,
         pool_size=5,
         max_overflow=10,
-        connect_args={"ssl": "require"},
+        connect_args={"ssl": ssl_context},
     )
 else:
     # Local development fallback: SQLite via aiosqlite
