@@ -10,8 +10,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 // @ts-ignore
 import { useDroppable } from '@dnd-kit/core';
-
-const API_URL = 'http://localhost:8000/api';
+import { API_URL } from '../config';
 
 /* ═══════════════════════════════════════════════════════
    SHARED STYLES

@@ -3,8 +3,7 @@ import { useStore } from '../store/useStore';
 import type { Config } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const API_URL = 'http://localhost:8000/api';
+import { API_URL } from '../config';
 
 /* ────────────────── helpers ────────────────── */
 function formatTime12(t: string): string {

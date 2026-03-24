@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
 import ExportPopup from './ExportPopup';
-
-const API_URL = 'http://localhost:8000/api';
+import { API_URL } from '../config';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function MasterGrid() {
