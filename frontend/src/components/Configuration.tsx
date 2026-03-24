@@ -155,6 +155,7 @@ export default function Configuration() {
     try {
       await axios.post(`${API_URL}/branches`, { name: addBranchName.trim(), config_id: currentConfig.id });
       setAddBranchName('');
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add branch');
@@ -167,6 +168,7 @@ export default function Configuration() {
       await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId, config_id: currentConfig.id });
       setAddSemName('');
       setShowAddSem(null);
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add semester');
@@ -180,6 +182,7 @@ export default function Configuration() {
       await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
       setAddFacultyName('');
       setAddFacultyWorkload('04:00');
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add faculty');
@@ -192,6 +195,7 @@ export default function Configuration() {
       await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4, config_id: currentConfig.id });
       setAddSubjectName('');
       setAddSubjectHours('4');
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add subject');
@@ -204,6 +208,7 @@ export default function Configuration() {
       await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60, config_id: currentConfig.id });
       setAddRoomName('');
       setAddRoomCapacity('60');
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add room');
@@ -219,6 +224,7 @@ export default function Configuration() {
     const { type, id } = confirmDeleteObj;
     try {
       await axios.delete(`${API_URL}/${type}/${id}`);
+      invalidateCache();
 
       // Immutable state updates instead of fetchAll() to prevent UI instability
       if (type === 'branches') {
@@ -254,6 +260,7 @@ export default function Configuration() {
   const handleUnmapFaculty = async (facultyId: number) => {
     if (!selectedSemId) return;
     await axios.delete(`${API_URL}/mappings/faculty/${selectedSemId}/${facultyId}`);
+    invalidateCache();
     setMappedFaculties(prev => prev.filter((f: any) => f.id !== facultyId));
   };
 
@@ -274,6 +281,7 @@ export default function Configuration() {
         await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
       }
       setEditingItem(null);
+      invalidateCache();
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || `Failed to update ${type}`);
@@ -292,6 +300,7 @@ export default function Configuration() {
       const facId = parseInt(active.id.replace('fac-', ''));
       if (selectedSemId && !mappedFaculties.find((f: any) => f.id === facId)) {
         await axios.post(`${API_URL}/mappings/faculty`, { semester_id: selectedSemId, faculty_id: facId });
+        invalidateCache();
         const fac = faculties.find((f: any) => f.id === facId);
         if (fac) setMappedFaculties(prev => [...prev, fac]);
       }
@@ -552,6 +561,7 @@ export default function Configuration() {
                     onToggleCollision={async (newVal: boolean) => {
                       try {
                         await axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal });
+                        invalidateCache();
                         fetchAll();
                       } catch (err) { }
                     }}
