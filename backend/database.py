@@ -1,11 +1,39 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 import os
+from dotenv import load_dotenv
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'timetable.db')}")
+load_dotenv()
 
-engine = create_async_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Debug log (temporary) – helps verify connection on Render
+print("DATABASE_URL:", DATABASE_URL)
+
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    # Convert standard PostgreSQL URL to async-compatible asyncpg URL
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+if DATABASE_URL and "asyncpg" in DATABASE_URL:
+    # Production: Supabase PostgreSQL via asyncpg
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        connect_args={"ssl": "require"},
+    )
+else:
+    # Local development fallback: SQLite via aiosqlite
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    SQLITE_URL = f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'timetable.db')}"
+    engine = create_async_engine(
+        SQLITE_URL,
+        echo=True,
+        connect_args={"check_same_thread": False},
+    )
+
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()

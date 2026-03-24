@@ -110,7 +110,7 @@ export default function Configuration() {
   const [addSemName, setAddSemName] = useState('');
   const [addSemBranchId, setAddSemBranchId] = useState<number | null>(null);
   const [addFacultyName, setAddFacultyName] = useState('');
-  const [addFacultyWorkload, setAddFacultyWorkload] = useState('40:00');
+  const [addFacultyWorkload, setAddFacultyWorkload] = useState('04:00');
   const [addSubjectName, setAddSubjectName] = useState('');
   const [addSubjectHours, setAddSubjectHours] = useState('4');
   const [addRoomName, setAddRoomName] = useState('');
@@ -185,7 +185,7 @@ export default function Configuration() {
     try {
       await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
       setAddFacultyName('');
-      setAddFacultyWorkload('40:00');
+      setAddFacultyWorkload('04:00');
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to add faculty');
@@ -270,9 +270,9 @@ export default function Configuration() {
     try {
       if (type === 'faculties' && field === 'complex') {
         const parsed = JSON.parse(value);
-        await axios.put(`${API_URL}/${type}/${id}`, { 
-          name: parsed.name, 
-          weekly_workload_minutes: timeToMins(parsed.workload) 
+        await axios.put(`${API_URL}/${type}/${id}`, {
+          name: parsed.name,
+          weekly_workload_minutes: timeToMins(parsed.workload)
         });
       } else if (type === 'faculties' && field === 'ignore_collision') {
         await axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
@@ -502,15 +502,15 @@ export default function Configuration() {
 
         {/* ════════════ RIGHT PANEL — Faculty & Rooms ════════════ */}
         <div style={{ width: 280, minWidth: 280, borderLeft: '1px solid #DBCEA5', background: '#F4F0DF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          
+
           {/* ----- TABS HEADER ----- */}
           <div style={{ display: 'flex', borderBottom: '1px solid #DBCEA5' }}>
-            <button 
+            <button
               onClick={() => setActiveTab('faculty')}
               style={{ flex: 1, padding: '16px 0', background: activeTab === 'faculty' ? '#DBCEA5' : 'transparent', border: 'none', borderBottom: activeTab === 'faculty' ? '2px solid #8A7650' : '2px solid transparent', color: activeTab === 'faculty' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               👥 Faculty
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('rooms')}
               style={{ flex: 1, padding: '16px 0', background: activeTab === 'rooms' ? '#DBCEA5' : 'transparent', border: 'none', borderBottom: activeTab === 'rooms' ? '2px solid #8E977D' : '2px solid transparent', color: activeTab === 'rooms' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               🏢 Rooms
@@ -636,11 +636,13 @@ export default function Configuration() {
         {/* Custom Delete Confirmation Modal */}
         {confirmDeleteObj && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <div style={{ background: '#F4F0DF', border: '1px solid #C9BE9A', padding: 24, borderRadius: 14,
-  boxShadow: '0 20px 40px rgba(0,0,0,0.4)', width: confirmDeleteObj.type === 'branches' ? 380 : 320, textAlign: confirmDeleteObj.type === 'branches' ? 'left' : 'center', animation: 'fadeInUp 0.2s ease' }}>
+            <div style={{
+              background: '#F4F0DF', border: '1px solid #C9BE9A', padding: 24, borderRadius: 14,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)', width: confirmDeleteObj.type === 'branches' ? 380 : 320, textAlign: confirmDeleteObj.type === 'branches' ? 'left' : 'center', animation: 'fadeInUp 0.2s ease'
+            }}>
               <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
               <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#2F2A1F', textAlign: 'center' }}>Confirm Deletion</h3>
-              
+
               {confirmDeleteObj.type === 'branches' ? (
                 <div style={{ background: 'rgba(239,68,68,0.1)', padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', marginBottom: 24 }}>
                   <p style={{ margin: '0 0 8px', fontSize: 13, color: '#fca5a5', fontWeight: 600 }}>Are you sure you want to delete this branch?</p>
@@ -715,9 +717,9 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
           <>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#2F2A1F', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faculty.name}</span>
             <span style={{ fontSize: 10, color: '#5E5642' }}>Workload: {minsToTime(faculty.weekly_workload_minutes)} (weekly)</span>
-            
+
             {/* Ignore Collision Toggle */}
-            <div 
+            <div
               style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}
               onClick={e => e.stopPropagation()}
               onMouseDown={e => e.stopPropagation()}

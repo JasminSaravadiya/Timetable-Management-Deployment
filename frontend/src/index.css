@@ -15,7 +15,9 @@
   --color-themeTextMuted: #5E5642;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -24,62 +26,104 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #ECE7D1; /* Page Background */
-  color: #2F2A1F; /* Primary Text */
+  background: #ECE7D1;
+  /* Page Background */
+  color: #2F2A1F;
+  /* Primary Text */
 }
 
 /* Keyframe Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* EXTENDED THEME SYSTEM UTILITIES */
 .btn-primary {
-  background: linear-gradient(#8A7650, #756341) !important;
+  background: linear-gradient(#8A7650, #826e48) !important;
   color: #FFFFFF !important;
   padding: 10px 18px !important;
   border-radius: 10px !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
   border: none !important;
-  transition: all 0.2s ease !important;
+  transition: transform 0.2s ease !important;
   cursor: pointer;
 }
+
 .btn-primary:hover {
   background: #756341 !important;
   transform: translateY(-1px) !important;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   border-color: #8A7650 !important;
-  box-shadow: 0 0 0 2px rgba(138,118,80,0.15) !important;
+  box-shadow: 0 0 0 2px rgba(138, 118, 80, 0.15) !important;
   outline: none !important;
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.15); }
-  50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 35px rgba(99, 102, 241, 0.3);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 /* Custom Scrollbar */
@@ -87,13 +131,16 @@ input:focus, select:focus {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(99, 102, 241, 0.3);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.5);
 }

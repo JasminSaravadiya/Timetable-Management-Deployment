@@ -30,7 +30,7 @@ function generateSlots(
 ): { start: string; end: string; isBreak: boolean }[] {
   const slots: { start: string; end: string; isBreak: boolean }[] = [];
   let cursor = start;
-  
+
   const toMin = (t: string) => {
     const [h, m] = t.split(':').map(Number);
     return h * 60 + m;
@@ -50,7 +50,7 @@ function generateSlots(
       const brkStartMin = toMin(brk.start_time);
       const brkEndMin = brkStartMin + brk.duration_minutes;
       const cursorMin = toMin(cursor);
-      
+
       // If the upcoming class crosses into the break or starts identically
       if (cursorMin < brkStartMin && toMin(nextSlotEnd) > brkStartMin) {
         // We truncate the class (or rather, we don't schedule it because it would cross a break)
@@ -260,7 +260,7 @@ export default function Dashboard() {
             border: 'none',
             borderRadius: 14,
             background: 'linear-gradient(#8A7650, #756341)',
-            color: '#2F2A1F',
+            color: '#ffffffff',
             fontWeight: 700,
             fontSize: 15,
             cursor: 'pointer',
@@ -268,13 +268,13 @@ export default function Dashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            boxShadow: '0 6px 24px rgba(138,118,80,0.35)',
+            boxShadow: '0 6px 12px rgba(138,118,80,0.35)',
             transition: 'all 0.2s ease',
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-            (e.target as HTMLElement).style.boxShadow = '0 10px 32px #8A7650';
+            (e.target as HTMLElement).style.boxShadow = '0 4px 12px #8A7650';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(0)';
@@ -285,7 +285,7 @@ export default function Dashboard() {
         </button>
 
         {/* Load Button */}
-        <button
+        {/* <button
           id="btn-load"
           onClick={handleLoadFile}
           style={{
@@ -317,7 +317,7 @@ export default function Dashboard() {
           }}
         >
           <span style={{ fontSize: 20 }}>📂</span> Load File
-        </button>
+        </button> */}
 
         {/* Subtle divider and hint */}
         <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.35, fontSize: 11, lineHeight: 1.5 }}>
@@ -424,7 +424,7 @@ export default function Dashboard() {
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#DBCEA5';
+                  (e.currentTarget as HTMLElement).style.background = '#F4F0DF';
                   (e.currentTarget as HTMLElement).style.borderColor = '#DBCEA5';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
                 }}
@@ -687,7 +687,7 @@ export default function Dashboard() {
                       + Add Break
                     </button>
                   </div>
-                  
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                     {formData.breaks.map((brk, index) => (
                       <div key={brk.id} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

@@ -196,7 +196,7 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
           {/* Header */}
           <div className="p-4 border-b border-[#C9BE9A] flex justify-between items-center bg-[#DBCEA5]">
             <h2 className="text-lg font-bold text-[#2F2A1F]">Export Preview</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-themePrimary hover:bg-red-500/80 text-themeTextMuted hover:text-[#2F2A1F] flex items-center justify-center text-sm font-bold transition">✕</button>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-themePrimary hover:bg-red-500/80 text-white flex items-center justify-center text-sm font-bold transition">✕</button>
           </div>
 
           {/* Tabs */}
@@ -306,10 +306,10 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-themeSurface">
-                    <th className="border border-themePrimary p-2 text-themeTextMuted font-bold w-[60px] sticky left-0 bg-themeSurface z-10">Day</th>
-                    <th className="border border-themePrimary p-2 text-themeTextMuted font-bold w-[100px] sticky left-[60px] bg-themeSurface z-10">Time</th>
+                    <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[60px] sticky left-0 bg-themeSurface z-10">Day</th>
+                    <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[100px] sticky bg-themeSurface z-10">Time</th>
                     {previewColumns.length > 0 ? previewColumns.map((col) => (
-                      <th key={col.id} className="border border-themePrimary p-2 text-themeSecondary font-bold min-w-[150px] text-center">
+                      <th key={col.id} className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold min-w-[150px] text-center">
                         {col.label}
                       </th>
                     )) : (
@@ -321,17 +321,17 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
                   {DAYS.map((day) => (
                     <React.Fragment key={day}>
                       {timeslots.map((slot: any, slotIdx: number) => (
-                        <tr key={`${day}-${slot.start}`} className="hover:bg-themePrimary/20 transition">
+                        <tr key={`${day}-${slot.start}`} className="bg-[#F4F0DF] hover:bg-[#F4F0DF]/50 transition">
                           {slotIdx === 0 && (
                             <td
                               rowSpan={timeslots.length}
-                              className="border border-themePrimary p-2 text-themePrimary font-bold text-center bg-[#DBCEA5] sticky left-0 z-10"
+                              className="border border-themePrimary p-2 text-themePrimary-200 font-bold text-center bg-[#DBCEA5] sticky left-0 z-10"
                               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
                             >
                               {day.toUpperCase()}
                             </td>
                           )}
-                          <td className="border border-themePrimary p-2 text-themeTextMuted font-medium text-center whitespace-nowrap sticky left-[60px] bg-themeBg/90 z-10">
+                          <td className="border border-themePrimary p-2 text-themeTextMuted font-medium text-center whitespace-nowrap sticky bg-themeBg/90">
                             {slot.display}
                           </td>
                           {slot.type === 'break' ? (
@@ -349,8 +349,8 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
                                   {cellAllocs.length > 0 ? (
                                     <div className="space-y-1">
                                       {cellAllocs.map((a: any) => (
-                                        <div key={a.id} className="bg-blue-900/30 border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
-                                          <div className="font-bold text-blue-200 truncate">{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
+                                        <div key={a.id} className="bg-[#F4F0DF] border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
+                                          <div className="font-bold text-themePrimary-200 truncate">{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
                                           <div className="text-themeSecondary truncate">{faculties.find((f: any) => f.id === a.faculty_id)?.name}</div>
                                           <div className="flex justify-between text-themeTextMuted">
                                             <span>{rooms.find((r: any) => r.id === a.room_id)?.name}</span>

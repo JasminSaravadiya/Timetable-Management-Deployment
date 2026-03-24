@@ -35,7 +35,7 @@ export default function ExportPreview() {
       axios.get(`${API_URL}/rooms`)
     ]);
     if (currentConfig) {
-      setAllocations(alloc.data.filter((a:any) => a.config_id === currentConfig.id));
+      setAllocations(alloc.data.filter((a: any) => a.config_id === currentConfig.id));
     }
     setBranches(b.data);
     setSemesters(s.data);
@@ -47,25 +47,25 @@ export default function ExportPreview() {
   const getFilteredData = () => {
     let filtered = allocations;
     if (filterType === 'semester' && filterId) {
-      filtered = allocations.filter((a:any) => String(a.semester_id) === filterId);
+      filtered = allocations.filter((a: any) => String(a.semester_id) === filterId);
     } else if (filterType === 'faculty' && filterId) {
-      filtered = allocations.filter((a:any) => String(a.faculty_id) === filterId);
+      filtered = allocations.filter((a: any) => String(a.faculty_id) === filterId);
     } else if (filterType === 'room' && filterId) {
-      filtered = allocations.filter((a:any) => String(a.room_id) === filterId);
+      filtered = allocations.filter((a: any) => String(a.room_id) === filterId);
     }
 
-    return filtered.map((a:any) => {
-      const sem = semesters.find((s:any) => s.id === a.semester_id);
-      const branch = branches.find((b:any) => b.id === (sem as any)?.branch_id);
+    return filtered.map((a: any) => {
+      const sem = semesters.find((s: any) => s.id === a.semester_id);
+      const branch = branches.find((b: any) => b.id === (sem as any)?.branch_id);
       return {
         Day: a.day_of_week,
         StartTime: a.start_time,
         DurationMins: a.duration_minutes,
         Branch: (branch as any)?.name,
         Semester: (sem as any)?.name,
-        Subject: (subjects.find((sub:any) => sub.id === a.subject_id) as any)?.name,
-        Faculty: (faculties.find((f:any) => f.id === a.faculty_id) as any)?.name,
-        Room: (rooms.find((r:any) => r.id === a.room_id) as any)?.name,
+        Subject: (subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name,
+        Faculty: (faculties.find((f: any) => f.id === a.faculty_id) as any)?.name,
+        Room: (rooms.find((r: any) => r.id === a.room_id) as any)?.name,
         Batch: a.batch_name || 'All'
       };
     });
@@ -85,12 +85,12 @@ export default function ExportPreview() {
       {/* Sidebar Controls */}
       <div className="w-80 bg-[#F4F0DF] border-r border-[#C9BE9A] p-6 flex flex-col shadow-xl z-10">
         <h2 className="text-2xl font-black text-[#2F2A1F] mb-8 border-b border-[#C9BE9A] pb-4">Export Options</h2>
-        
+
         <div className="flex flex-col gap-6 flex-1">
           <label className="flex flex-col gap-2">
             <span className="font-bold text-sm text-themeTextMuted uppercase tracking-widest">Filter By</span>
             <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary font-medium"
-              value={filterType} onChange={(e) => {setFilterType(e.target.value); setFilterId('');}}>
+              value={filterType} onChange={(e) => { setFilterType(e.target.value); setFilterId(''); }}>
               <option value="all">Master (All Data)</option>
               <option value="semester">Specific Semester</option>
               <option value="faculty">Specific Faculty</option>
@@ -102,7 +102,7 @@ export default function ExportPreview() {
             <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Semester...</option>
-              {semesters.map((s:any) => <option key={s.id} value={s.id}>{s.name} (Branch {s.branch_id})</option>)}
+              {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name} (Branch {s.branch_id})</option>)}
             </select>
           )}
 
@@ -110,7 +110,7 @@ export default function ExportPreview() {
             <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Faculty...</option>
-              {faculties.map((f:any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              {faculties.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           )}
 
@@ -118,7 +118,7 @@ export default function ExportPreview() {
             <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Room...</option>
-              {rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           )}
         </div>
@@ -159,10 +159,10 @@ export default function ExportPreview() {
                   <td colSpan={9} className="p-12 text-center text-themeTextMuted italic font-medium">No records to preview.</td>
                 </tr>
               ) : (
-                exportData.map((row:any, idx:number) => (
+                exportData.map((row: any, idx: number) => (
                   <tr key={idx} className="border-b border-themeSurface hover:bg-[#ECE7D1] transition-colors">
                     <td className="p-4 font-semibold text-themeTextMain">{row.Day}</td>
-                    <td className="p-4 text-themeTextMuted">{row.StartTime.slice(0,5)}</td>
+                    <td className="p-4 text-themeTextMuted">{row.StartTime.slice(0, 5)}</td>
                     <td className="p-4 text-themeTextMuted">{row.DurationMins}</td>
                     <td className="p-4 font-medium text-themePrimary">{row.Branch}</td>
                     <td className="p-4 text-themeTextMuted">{row.Semester}</td>
