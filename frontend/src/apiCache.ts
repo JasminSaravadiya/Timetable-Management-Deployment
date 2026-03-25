@@ -3,7 +3,7 @@ import { API_URL } from './config';
 
 // In-memory cache with TTL
 const cache: Map<string, { data: any; timestamp: number }> = new Map();
-const CACHE_TTL = 30_000; // 30 seconds
+const CACHE_TTL = 10_000; // 10 seconds — keep short for multi-user consistency
 
 function getCached(key: string): any | null {
   const entry = cache.get(key);

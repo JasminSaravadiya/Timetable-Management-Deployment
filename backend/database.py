@@ -29,7 +29,10 @@ if DATABASE_URL and "asyncpg" in DATABASE_URL:
         pool_size=10,
         max_overflow=20,
         pool_recycle=1800,
-        connect_args={"ssl": ssl_context},
+        connect_args={
+            "ssl": ssl_context,
+            "prepared_statement_cache_size": 0,  # Required for PgBouncer Transaction mode
+        },
     )
 else:
     # Local development fallback: SQLite via aiosqlite

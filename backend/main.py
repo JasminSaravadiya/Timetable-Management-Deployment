@@ -482,7 +482,10 @@ async def create_allocation(allocation: schemas.AllocationCreate, db: AsyncSessi
     new_start = allocation.start_time
     new_end = add_minutes(new_start, allocation.duration_minutes)
 
-    result = await db.execute(select(models.Allocation).filter(models.Allocation.day_of_week == allocation.day_of_week))
+    result = await db.execute(select(models.Allocation).filter(
+        models.Allocation.day_of_week == allocation.day_of_week,
+        models.Allocation.config_id == allocation.config_id
+    ))
     existing_allocations = result.scalars().all()
 
     for ext in existing_allocations:
@@ -526,7 +529,11 @@ async def update_allocation(allocation_id: int, data: schemas.AllocationUpdate, 
     
     new_end = add_minutes(new_start, prop_duration)
 
-    ext_result = await db.execute(select(models.Allocation).filter(models.Allocation.day_of_week == new_day, models.Allocation.id != allocation_id))
+    ext_result = await db.execute(select(models.Allocation).filter(
+        models.Allocation.day_of_week == new_day,
+        models.Allocation.config_id == db_allocation.config_id,
+        models.Allocation.id != allocation_id
+    ))
     existing_allocations = ext_result.scalars().all()
 
     for ext in existing_allocations:
