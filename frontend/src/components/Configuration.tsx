@@ -97,6 +97,22 @@ export default function Configuration() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
 
+  // Save status indicator
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSaving = () => setSaveStatus('saving');
+  const showSaved = () => {
+    setSaveStatus('saved');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+  const showError = () => {
+    setSaveStatus('error');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
+  };
+
   // Selection
   const [selectedSemId, setSelectedSemId] = useState<number | null>(null);
   const [showAllFaculty, setShowAllFaculty] = useState(false);
@@ -152,25 +168,31 @@ export default function Configuration() {
   /* ─── CRUD helpers ─── */
   const handleAddBranch = async () => {
     if (!addBranchName.trim() || !currentConfig) return;
+    showSaving();
     try {
-      await axios.post(`${API_URL}/branches`, { name: addBranchName.trim(), config_id: currentConfig.id });
+      const res = await axios.post(`${API_URL}/branches`, { name: addBranchName.trim(), config_id: currentConfig.id });
+      setBranches(prev => [...prev, res.data]);
       setAddBranchName('');
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || 'Failed to add branch');
     }
   };
 
   const handleAddSemester = async (branchId: number) => {
     if (!addSemName.trim() || !currentConfig) return;
+    showSaving();
     try {
-      await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId, config_id: currentConfig.id });
+      const res = await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId, config_id: currentConfig.id });
+      setSemesters(prev => [...prev, res.data]);
       setAddSemName('');
       setShowAddSem(null);
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || 'Failed to add semester');
     }
   };
@@ -178,39 +200,48 @@ export default function Configuration() {
   const handleAddFaculty = async () => {
     if (!addFacultyName.trim() || !currentConfig) return;
     const mins = timeToMins(addFacultyWorkload);
+    showSaving();
     try {
-      await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
+      const res = await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
+      setFaculties(prev => [...prev, res.data]);
       setAddFacultyName('');
       setAddFacultyWorkload('04:00');
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || 'Failed to add faculty');
     }
   };
 
   const handleAddSubject = async () => {
     if (!addSubjectName.trim() || !selectedSemId || !currentConfig) return;
+    showSaving();
     try {
-      await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4, config_id: currentConfig.id });
+      const res = await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4, config_id: currentConfig.id });
+      setSubjects(prev => [...prev, res.data]);
       setAddSubjectName('');
       setAddSubjectHours('4');
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || 'Failed to add subject');
     }
   };
 
   const handleAddRoom = async () => {
     if (!addRoomName.trim() || !currentConfig) return;
+    showSaving();
     try {
-      await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60, config_id: currentConfig.id });
+      const res = await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60, config_id: currentConfig.id });
+      setRooms(prev => [...prev, res.data]);
       setAddRoomName('');
       setAddRoomCapacity('60');
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || 'Failed to add room');
     }
   };
@@ -268,22 +299,32 @@ export default function Configuration() {
     if (!editingItem) return;
     const { type, id, field, value } = editingItem;
 
+    showSaving();
     try {
+      let res;
       if (type === 'faculties' && field === 'complex') {
         const parsed = JSON.parse(value);
-        await axios.put(`${API_URL}/${type}/${id}`, {
+        res = await axios.put(`${API_URL}/${type}/${id}`, {
           name: parsed.name,
           weekly_workload_minutes: timeToMins(parsed.workload)
         });
       } else if (type === 'faculties' && field === 'ignore_collision') {
-        await axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
+        res = await axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
       } else {
-        await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
+        res = await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
       }
+      // Optimistic: update the item in local state
+      const updatedItem = res.data;
+      if (type === 'branches') setBranches(prev => prev.map(b => b.id === id ? updatedItem : b));
+      else if (type === 'semesters') setSemesters(prev => prev.map(s => s.id === id ? updatedItem : s));
+      else if (type === 'subjects') setSubjects(prev => prev.map(s => s.id === id ? updatedItem : s));
+      else if (type === 'faculties') setFaculties(prev => prev.map(f => f.id === id ? updatedItem : f));
+      else if (type === 'rooms') setRooms(prev => prev.map(r => r.id === id ? updatedItem : r));
       setEditingItem(null);
       invalidateCache();
-      fetchAll();
+      showSaved();
     } catch (error: any) {
+      showError();
       alert(error.response?.data?.detail || `Failed to update ${type}`);
     }
   };
@@ -324,9 +365,23 @@ export default function Configuration() {
         <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #DBCEA5', background: '#F4F0DF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
           <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #DBCEA5' }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#8A7650, #756341)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              {currentConfig?.name || 'Timetable'}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#8A7650, #756341)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                {currentConfig?.name || 'Timetable'}
+              </h2>
+              {/* Save status indicator */}
+              {saveStatus !== 'idle' && (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
+                  animation: 'fadeIn 0.2s ease',
+                  ...(saveStatus === 'saving' ? { color: '#8A7650', background: 'rgba(138,118,80,0.12)' } :
+                    saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
+                    { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
+                }}>
+                  {saveStatus === 'saving' ? '⏳ Saving...' : saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
+                </span>
+              )}
+            </div>
             <p style={{ color: '#5E5642', fontSize: 11, margin: '4px 0 0' }}>Screen 2 — Config Data</p>
           </div>
 
@@ -559,11 +614,13 @@ export default function Configuration() {
                     onEditCancel={() => setEditingItem(null)}
                     onDelete={() => handleDelete('faculties', fac.id)}
                     onToggleCollision={async (newVal: boolean) => {
+                      showSaving();
                       try {
-                        await axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal });
+                        const res = await axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal });
+                        setFaculties(prev => prev.map(f => f.id === fac.id ? res.data : f));
                         invalidateCache();
-                        fetchAll();
-                      } catch (err) { }
+                        showSaved();
+                      } catch (err) { showError(); }
                     }}
                     isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
                   />

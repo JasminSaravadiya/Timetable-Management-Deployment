@@ -174,6 +174,17 @@ async def delete_branch(branch_id: int, db: AsyncSession = Depends(get_db)):
 # ═══════════════════════════════════
 @app.post("/api/semesters", response_model=schemas.SemesterOut)
 async def create_semester(semester: schemas.SemesterCreate, db: AsyncSession = Depends(get_db)):
+    # Prevent duplicate semester names within the same branch and config
+    if semester.config_id is not None:
+        existing = await db.execute(
+            select(models.Semester).filter(
+                models.Semester.config_id == semester.config_id,
+                models.Semester.branch_id == semester.branch_id,
+                models.Semester.name == semester.name
+            )
+        )
+        if existing.scalars().first():
+            raise HTTPException(status_code=400, detail="This entry already exists.")
     db_semester = models.Semester(**semester.model_dump())
     db.add(db_semester)
     await db.commit()
@@ -235,6 +246,17 @@ async def delete_semester(semester_id: int, db: AsyncSession = Depends(get_db)):
 # ═══════════════════════════════════
 @app.post("/api/subjects", response_model=schemas.SubjectOut)
 async def create_subject(subject: schemas.SubjectCreate, db: AsyncSession = Depends(get_db)):
+    # Prevent duplicate subject names within the same semester and config
+    if subject.config_id is not None:
+        existing = await db.execute(
+            select(models.Subject).filter(
+                models.Subject.config_id == subject.config_id,
+                models.Subject.semester_id == subject.semester_id,
+                models.Subject.name == subject.name
+            )
+        )
+        if existing.scalars().first():
+            raise HTTPException(status_code=400, detail="This entry already exists.")
     db_subject = models.Subject(**subject.model_dump())
     db.add(db_subject)
     await db.commit()
