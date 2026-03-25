@@ -80,10 +80,10 @@ export default function ExportPreview() {
   };
 
   return (
-    <div className="flex h-screen bg-[#B6FFFA] text-[#1a1a1a]">
+    <div className="flex h-screen bg-[#FBFBFB] text-[#1a1a1a]">
       {/* Sidebar Controls */}
-      <div className="w-80 bg-[#98E4FF] border-r border-[#80B3FF] p-6 flex flex-col shadow-xl z-10">
-        <h2 className="text-2xl font-black text-[#1a1a1a] mb-8 border-b border-[#80B3FF] pb-4">Export Options</h2>
+      <div className="w-80 bg-[#E8F9FF] border-r border-[#a8c4f0] p-6 flex flex-col shadow-xl z-10">
+        <h2 className="text-2xl font-black text-[#1a1a1a] mb-8 border-b border-[#a8c4f0] pb-4">Export Options</h2>
 
         <div className="flex flex-col gap-6 flex-1">
           <label className="flex flex-col gap-2">
@@ -127,7 +127,7 @@ export default function ExportPreview() {
           <span className="group-hover:translate-x-1 transition-transform">&darr;</span>
         </button>
 
-        <button onClick={() => navigate('/grid')} className="mt-4 px-6 py-4 bg-[#80B3FF] hover:bg-[#6a9be0] text-white hover:text-white font-bold rounded-xl transition-all w-full">
+        <button onClick={() => navigate('/grid')} className="mt-4 px-6 py-4 bg-[#C4D9FF] hover:bg-[#a8c4f0] text-[#3a3a5c] hover:text-[#1a1a1a] font-bold rounded-xl transition-all w-full">
           &larr; Back to Grid
         </button>
       </div>
@@ -159,7 +159,7 @@ export default function ExportPreview() {
                 </tr>
               ) : (
                 exportData.map((row: any, idx: number) => (
-                  <tr key={idx} className="border-b border-themeSurface hover:bg-[#B6FFFA] transition-colors">
+                  <tr key={idx} className="border-b border-themeSurface hover:bg-[#FBFBFB] transition-colors">
                     <td className="p-4 font-semibold text-themeTextMain">{row.Day}</td>
                     <td className="p-4 text-themeTextMuted">{row.StartTime.slice(0, 5)}</td>
                     <td className="p-4 text-themeTextMuted">{row.DurationMins}</td>

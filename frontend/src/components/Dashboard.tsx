@@ -183,7 +183,7 @@ export default function Dashboard() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#B6FFFA',
+        background: '#FBFBFB',
         color: '#1a1a1a',
         display: 'flex',
         fontFamily: "'Inter', sans-serif",
@@ -200,7 +200,7 @@ export default function Dashboard() {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(104,126,255,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(197,186,255,0.12) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
@@ -213,7 +213,7 @@ export default function Dashboard() {
           width: 500,
           height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(128,179,255,0.10) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(142,151,125,0.10) 0%, transparent 70%)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
@@ -229,8 +229,8 @@ export default function Dashboard() {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 20,
-          borderRight: '1px solid #80B3FF',
-          background: '#98E4FF',
+          borderRight: '1px solid #a8c4f0',
+          background: '#E8F9FF',
           backdropFilter: 'blur(12px)',
           zIndex: 1,
         }}
@@ -242,7 +242,7 @@ export default function Dashboard() {
               width: 56,
               height: 56,
               borderRadius: 16,
-              background: 'linear-gradient(#687EFF, #5a6cff)',
+              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -258,7 +258,7 @@ export default function Dashboard() {
             style={{
               fontSize: 15,
               fontWeight: 800,
-              background: 'linear-gradient(#687EFF, #5a6cff)',
+              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-0.02em',
@@ -280,7 +280,7 @@ export default function Dashboard() {
             padding: '16px 0',
             border: 'none',
             borderRadius: 14,
-            background: 'linear-gradient(#687EFF, #5a6cff)',
+            background: 'linear-gradient(#C5BAFF, #b0a3f0)',
             color: '#ffffffff',
             fontWeight: 700,
             fontSize: 15,
@@ -289,17 +289,17 @@ export default function Dashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            boxShadow: '0 6px 12px rgba(104,126,255,0.35)',
+            boxShadow: '0 6px 12px rgba(197,186,255,0.35)',
             transition: 'all 0.2s ease',
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-            (e.target as HTMLElement).style.boxShadow = '0 4px 12px #687EFF';
+            (e.target as HTMLElement).style.boxShadow = '0 4px 12px #C5BAFF';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(0)';
-            (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(104,126,255,0.35)';
+            (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(197,186,255,0.35)';
           }}
         >
           <span style={{ fontSize: 20 }}>✨</span> New Timetable
@@ -312,10 +312,10 @@ export default function Dashboard() {
           style={{
             width: '100%',
             padding: '16px 0',
-            border: '1px solid #80B3FF',
+            border: '1px solid #C4D9FF',
             borderRadius: 14,
-            background: '#98E4FF',
-            color: '#687EFF',
+            background: '#E8F9FF',
+            color: '#C5BAFF',
             fontWeight: 600,
             fontSize: 15,
             cursor: 'pointer',
@@ -327,13 +327,13 @@ export default function Dashboard() {
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = '#80B3FF';
-            (e.target as HTMLElement).style.borderColor = '#687EFF';
+            (e.target as HTMLElement).style.background = '#C4D9FF';
+            (e.target as HTMLElement).style.borderColor = '#C5BAFF';
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
           }}
           onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.background = '#80B3FF';
-            (e.target as HTMLElement).style.borderColor = '#80B3FF';
+            (e.target as HTMLElement).style.background = '#C4D9FF';
+            (e.target as HTMLElement).style.borderColor = '#C4D9FF';
             (e.target as HTMLElement).style.transform = 'translateY(0)';
           }}
         >
@@ -364,7 +364,7 @@ export default function Dashboard() {
               fontSize: 32,
               fontWeight: 800,
               letterSpacing: '-0.03em',
-              background: 'linear-gradient(#687EFF, #5a6cff)',
+              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               margin: 0,
@@ -416,8 +416,8 @@ export default function Dashboard() {
                   width: 80,
                   height: 80,
                   borderRadius: 20,
-                  background: '#98E4FF',
-                  border: '1px solid rgba(104,126,255,0.15)',
+                  background: '#E8F9FF',
+                  border: '1px solid rgba(197,186,255,0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -430,7 +430,7 @@ export default function Dashboard() {
                 No timetables yet
               </p>
               <p style={{ color: '#3a3a5c', fontSize: 13 }}>
-                Click <strong style={{ color: '#687EFF' }}>"New Timetable"</strong> to get started
+                Click <strong style={{ color: '#C5BAFF' }}>"New Timetable"</strong> to get started
               </p>
             </div>
           ) : (
@@ -441,8 +441,8 @@ export default function Dashboard() {
                 style={{
                   padding: '20px 24px',
                   borderRadius: 16,
-                  background: '#98E4FF',
-                  border: '1px solid #80B3FF',
+                  background: '#E8F9FF',
+                  border: '1px solid #C4D9FF',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -451,13 +451,13 @@ export default function Dashboard() {
                   animation: `fadeInUp 0.4s ease ${i * 0.08}s both`,
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#80B3FF';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#80B3FF';
+                  (e.currentTarget as HTMLElement).style.background = '#C4D9FF';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#C4D9FF';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#98E4FF';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#80B3FF';
+                  (e.currentTarget as HTMLElement).style.background = '#E8F9FF';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#C4D9FF';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
                 }}
               >
@@ -467,8 +467,8 @@ export default function Dashboard() {
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background: `linear-gradient(135deg, ${['#687EFF', '#80B3FF', '#80B3FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}22, ${['#687EFF', '#80B3FF', '#80B3FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}11)`,
-                      border: `1px solid ${['#687EFF', '#80B3FF', '#80B3FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}33`,
+                      background: `linear-gradient(135deg, ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}22, ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}11)`,
+                      border: `1px solid ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}33`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -497,7 +497,7 @@ export default function Dashboard() {
                 </div>
                 <span
                   style={{
-                    color: '#687EFF',
+                    color: '#C5BAFF',
                     fontWeight: 600,
                     fontSize: 14,
                     display: 'flex',
@@ -532,8 +532,8 @@ export default function Dashboard() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#98E4FF',
-              border: '1px solid #80B3FF',
+              background: '#E8F9FF',
+              border: '1px solid #C4D9FF',
               borderRadius: 24,
               width: '90%',
               maxWidth: 820,
@@ -541,7 +541,7 @@ export default function Dashboard() {
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px #80B3FF',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px #C4D9FF',
               animation: 'slideUp 0.35s ease',
             }}
           >
@@ -549,7 +549,7 @@ export default function Dashboard() {
             <div
               style={{
                 padding: '24px 32px',
-                borderBottom: '1px solid #80B3FF',
+                borderBottom: '1px solid #C4D9FF',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -560,7 +560,7 @@ export default function Dashboard() {
                   margin: 0,
                   fontSize: 22,
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #e0e7ff, #687EFF)',
+                  background: 'linear-gradient(135deg, #e0e7ff, #C5BAFF)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   letterSpacing: '-0.02em',
@@ -575,8 +575,8 @@ export default function Dashboard() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  border: '1px solid #80B3FF',
-                  background: '#98E4FF',
+                  border: '1px solid #C4D9FF',
+                  background: '#E8F9FF',
                   color: '#3a3a5c',
                   fontSize: 18,
                   cursor: 'pointer',
@@ -592,8 +592,8 @@ export default function Dashboard() {
                   (e.target as HTMLElement).style.color = '#f87171';
                 }}
                 onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.background = '#80B3FF';
-                  (e.target as HTMLElement).style.borderColor = '#80B3FF';
+                  (e.target as HTMLElement).style.background = '#C4D9FF';
+                  (e.target as HTMLElement).style.borderColor = '#C4D9FF';
                   (e.target as HTMLElement).style.color = '#5A5A5A';
                 }}
               >
@@ -632,11 +632,11 @@ export default function Dashboard() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     style={inputStyle}
                     onFocus={(e) => {
-                      (e.target as HTMLElement).style.borderColor = '#687EFF';
-                      (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(104,126,255,0.1)';
+                      (e.target as HTMLElement).style.borderColor = '#C5BAFF';
+                      (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(197,186,255,0.1)';
                     }}
                     onBlur={(e) => {
-                      (e.target as HTMLElement).style.borderColor = '#80B3FF';
+                      (e.target as HTMLElement).style.borderColor = '#C4D9FF';
                       (e.target as HTMLElement).style.boxShadow = 'none';
                     }}
                   />
@@ -703,18 +703,18 @@ export default function Dashboard() {
                   style={{
                     padding: 16,
                     borderRadius: 14,
-                    background: '#98E4FF',
-                    border: '1px solid #80B3FF',
+                    background: '#E8F9FF',
+                    border: '1px solid #C4D9FF',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ ...labelStyle, color: '#687EFF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <label style={{ ...labelStyle, color: '#C5BAFF', display: 'flex', alignItems: 'center', gap: 6 }}>
                       ☕ Break Times <span style={{ color: '#3a3a5c', fontWeight: 400, fontSize: 11 }}>(optional)</span>
                     </label>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, breaks: [...formData.breaks, { id: Date.now(), start_time: '14:00', duration_minutes: 15 }] })}
-                      style={{ background: 'rgba(104,126,255,0.15)', color: '#687EFF', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      style={{ background: 'rgba(197,186,255,0.15)', color: '#C5BAFF', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                     >
                       + Add Break
                     </button>
@@ -781,23 +781,23 @@ export default function Dashboard() {
                     padding: '14px 0',
                     border: 'none',
                     borderRadius: 14,
-                    background: 'linear-gradient(#687EFF, #5a6cff)',
+                    background: 'linear-gradient(#C5BAFF, #b0a3f0)',
                     color: '#1a1a1a',
                     fontWeight: 700,
                     fontSize: 15,
                     cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(104,126,255,0.35)',
+                    boxShadow: '0 6px 24px rgba(197,186,255,0.35)',
                     transition: 'all 0.2s ease',
                     fontFamily: "'Inter', sans-serif",
                     letterSpacing: '-0.01em',
                   }}
                   onMouseEnter={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.target as HTMLElement).style.boxShadow = '0 10px 32px #687EFF';
+                    (e.target as HTMLElement).style.boxShadow = '0 10px 32px #C5BAFF';
                   }}
                   onMouseLeave={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(0)';
-                    (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(104,126,255,0.35)';
+                    (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(197,186,255,0.35)';
                   }}
                 >
                   Next →
@@ -808,8 +808,8 @@ export default function Dashboard() {
               <div
                 style={{
                   width: 300,
-                  borderLeft: '1px solid #80B3FF',
-                  background: '#B6FFFA',
+                  borderLeft: '1px solid #C4D9FF',
+                  background: '#FBFBFB',
                   padding: '24px 20px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -835,7 +835,7 @@ export default function Dashboard() {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: '#80B3FF',
+                      background: '#C4D9FF',
                       display: 'inline-block',
                       animation: 'pulse-glow 2s infinite',
                     }}
@@ -867,11 +867,11 @@ export default function Dashboard() {
                           animation: `fadeInUp 0.3s ease ${idx * 0.03}s both`,
                         }}
                       >
-                        <span style={{ color: slot.isBreak ? '#687EFF' : '#2B2B2B' }}>
+                        <span style={{ color: slot.isBreak ? '#C5BAFF' : '#2B2B2B' }}>
                           {formatTime12(slot.start)}
                         </span>
                         <span style={{ color: '#3a3a5c', fontSize: 11 }}>→</span>
-                        <span style={{ color: slot.isBreak ? '#687EFF' : '#2B2B2B' }}>
+                        <span style={{ color: slot.isBreak ? '#C5BAFF' : '#2B2B2B' }}>
                           {formatTime12(slot.end)}
                         </span>
                         {slot.isBreak && (
@@ -887,7 +887,7 @@ export default function Dashboard() {
                     style={{
                       marginTop: 'auto',
                       paddingTop: 16,
-                      borderTop: '1px solid #80B3FF',
+                      borderTop: '1px solid #C4D9FF',
                       fontSize: 12,
                       color: '#3a3a5c',
                       textAlign: 'center',
@@ -919,7 +919,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: 8,
-  border: '1px solid #80B3FF',
+  border: '1px solid #a8c4f0',
   background: '#FFFFFF',
   color: '#1a1a1a',
   fontSize: 14,

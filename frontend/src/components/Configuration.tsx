@@ -17,8 +17,8 @@ import { fetchConfigData, invalidateCache } from '../apiCache';
    SHARED STYLES
    ═══════════════════════════════════════════════════════ */
 const glassCard: React.CSSProperties = {
-  background: '#98E4FF',
-  border: '1px solid #80B3FF',
+  background: '#E8F9FF',
+  border: '1px solid #a8c4f0',
   borderRadius: 14,
   boxShadow: '0 3px 10px rgba(0,0,0,0.05)',
   backdropFilter: 'blur(8px)',
@@ -27,7 +27,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
   borderRadius: 8,
-  border: '1px solid #80B3FF',
+  border: '1px solid #a8c4f0',
   background: '#FFFFFF',
   color: '#1a1a1a',
   fontSize: 13,
@@ -41,7 +41,7 @@ const btnPrimary: React.CSSProperties = {
   padding: '10px 18px',
   border: 'none',
   borderRadius: 8,
-  background: 'linear-gradient(#687EFF, #5a6cff)',
+  background: 'linear-gradient(#C5BAFF, #b0a3f0)',
   color: '#1a1a1a',
   fontWeight: 700,
   fontSize: 13,
@@ -54,8 +54,8 @@ const iconBtnStyle: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: 8,
-  border: '1px solid #80B3FF',
-  background: '#98E4FF',
+  border: '1px solid #a8c4f0',
+  background: '#E8F9FF',
   color: '#3a3a5c',
   fontSize: 13,
   cursor: 'pointer',
@@ -66,7 +66,7 @@ const iconBtnStyle: React.CSSProperties = {
   fontFamily: "'Inter', sans-serif",
 };
 
-const ACCENT_COLORS = ['#687EFF', '#80B3FF', '#80B3FF', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
+const ACCENT_COLORS = ['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
 
 /* ═══════════════════════════════════════════════════════
    MAIN CONFIGURATION COMPONENT
@@ -375,14 +375,14 @@ export default function Configuration() {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div style={{ display: 'flex', height: '100vh', background: '#B6FFFA', color: '#1a1a1a', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: '100vh', background: '#FBFBFB', color: '#1a1a1a', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
 
         {/* ════════════ LEFT PANEL — Branch Tree ════════════ */}
-        <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #80B3FF', background: '#98E4FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #C4D9FF', background: '#E8F9FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #80B3FF' }}>
+          <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #C4D9FF' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#687EFF, #5a6cff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#C5BAFF, #b0a3f0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {currentConfig?.name || 'Timetable'}
               </h2>
               {/* Save status indicator */}
@@ -390,9 +390,9 @@ export default function Configuration() {
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
                   animation: 'fadeIn 0.2s ease',
-                  ...(saveStatus === 'saving' ? { color: '#687EFF', background: 'rgba(104,126,255,0.12)' } :
+                  ...(saveStatus === 'saving' ? { color: '#C5BAFF', background: 'rgba(197,186,255,0.12)' } :
                     saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
-                    { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
+                      { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
                 }}>
                   {saveStatus === 'saving' ? '⏳ Saving...' : saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
                 </span>
@@ -402,7 +402,7 @@ export default function Configuration() {
           </div>
 
           {/* Add Branch */}
-          <div style={{ padding: '12px 16px', display: 'flex', gap: 6, borderBottom: '1px solid #80B3FF' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', gap: 6, borderBottom: '1px solid #C4D9FF' }}>
             <input
               placeholder="Branch name…"
               value={addBranchName}
@@ -484,7 +484,7 @@ export default function Configuration() {
           </div>
 
           {/* Next button */}
-          <div style={{ padding: '16px', borderTop: '1px solid #80B3FF' }}>
+          <div style={{ padding: '16px', borderTop: '1px solid #C4D9FF' }}>
             <button onClick={() => navigate('/grid')} className="btn-primary" style={{ width: '100%', padding: '12px 0', borderRadius: 12 }}>
               Next →
             </button>
@@ -496,7 +496,7 @@ export default function Configuration() {
           {selectedSemId && selectedBranch && selectedSem ? (
             <>
               {/* Semester header */}
-              <div style={{ padding: '20px 28px 12px', borderBottom: '1px solid #80B3FF' }}>
+              <div style={{ padding: '20px 28px 12px', borderBottom: '1px solid #C4D9FF' }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#1a1a1a' }}>
                   {selectedBranch.name} — {selectedSem.name}
                 </h2>
@@ -513,7 +513,7 @@ export default function Configuration() {
                   </div>
 
                   {/* Subject header row */}
-                  <div style={{ display: 'flex', padding: '8px 14px', fontSize: 11, fontWeight: 700, color: '#3a3a5c', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #80B3FF' }}>
+                  <div style={{ display: 'flex', padding: '8px 14px', fontSize: 11, fontWeight: 700, color: '#3a3a5c', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #C4D9FF' }}>
                     <span style={{ flex: 1 }}>Subject</span>
                     <span style={{ width: 80, textAlign: 'center' }}>Hours</span>
                     <span style={{ width: 60 }}></span>
@@ -521,7 +521,7 @@ export default function Configuration() {
 
                   {/* Subject rows */}
                   {semSubjects.map((sub: any, idx: number) => (
-                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #80B3FF', animation: `fadeInUp 0.3s ease ${idx * 0.04}s both` }}>
+                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #C4D9FF', animation: `fadeInUp 0.3s ease ${idx * 0.04}s both` }}>
                       {editingItem?.type === 'subjects' && editingItem.id === sub.id ? (
                         <>
                           <input autoFocus value={editingItem.value} onChange={e => setEditingItem({ ...editingItem, value: e.target.value })}
@@ -567,7 +567,7 @@ export default function Configuration() {
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, animation: 'fadeIn 0.4s ease' }}>
-              <div style={{ width: 72, height: 72, borderRadius: 18, background: '#98E4FF', border: '1px solid rgba(104,126,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎯</div>
+              <div style={{ width: 72, height: 72, borderRadius: 18, background: '#E8F9FF', border: '1px solid rgba(197,186,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎯</div>
               <p style={{ color: '#3a3a5c', fontSize: 15, fontWeight: 600 }}>Select a semester</p>
               <p style={{ color: '#3a3a5c', fontSize: 12 }}>Choose a branch & semester from the left panel</p>
             </div>
@@ -575,18 +575,18 @@ export default function Configuration() {
         </div>
 
         {/* ════════════ RIGHT PANEL — Faculty & Rooms ════════════ */}
-        <div style={{ width: 280, minWidth: 280, borderLeft: '1px solid #80B3FF', background: '#98E4FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ width: 280, minWidth: 280, borderLeft: '1px solid #C4D9FF', background: '#E8F9FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* ----- TABS HEADER ----- */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #80B3FF' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #C4D9FF' }}>
             <button
               onClick={() => setActiveTab('faculty')}
-              style={{ flex: 1, padding: '16px 0', background: activeTab === 'faculty' ? '#80B3FF' : 'transparent', border: 'none', borderBottom: activeTab === 'faculty' ? '2px solid #687EFF' : '2px solid transparent', color: activeTab === 'faculty' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
+              style={{ flex: 1, padding: '16px 0', background: activeTab === 'faculty' ? '#C4D9FF' : 'transparent', border: 'none', borderBottom: activeTab === 'faculty' ? '2px solid #C5BAFF' : '2px solid transparent', color: activeTab === 'faculty' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               👥 Faculty
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              style={{ flex: 1, padding: '16px 0', background: activeTab === 'rooms' ? '#80B3FF' : 'transparent', border: 'none', borderBottom: activeTab === 'rooms' ? '2px solid #80B3FF' : '2px solid transparent', color: activeTab === 'rooms' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
+              style={{ flex: 1, padding: '16px 0', background: activeTab === 'rooms' ? '#C4D9FF' : 'transparent', border: 'none', borderBottom: activeTab === 'rooms' ? '2px solid #C4D9FF' : '2px solid transparent', color: activeTab === 'rooms' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               🏢 Rooms
             </button>
           </div>
@@ -598,7 +598,7 @@ export default function Configuration() {
               <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Faculty List</h3>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setShowAllFaculty(!showAllFaculty)} style={{ ...iconBtnStyle, fontSize: 10, width: 'auto', padding: '4px 8px', height: 22, color: showAllFaculty ? '#687EFF' : '#5A5A5A' }}>
+                  <button onClick={() => setShowAllFaculty(!showAllFaculty)} style={{ ...iconBtnStyle, fontSize: 10, width: 'auto', padding: '4px 8px', height: 22, color: showAllFaculty ? '#C5BAFF' : '#5A5A5A' }}>
                     {showAllFaculty ? 'Hide' : 'All'}
                   </button>
                 </div>
@@ -668,7 +668,7 @@ export default function Configuration() {
               <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
                 {rooms.map((rm: any, idx: number) => (
                   <div key={rm.id} style={{
-                    padding: '10px 12px', borderRadius: 8, background: '#98E4FF', border: '1px solid #80B3FF', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, animation: `fadeInUp 0.3s ease ${idx * 0.04}s both`
+                    padding: '10px 12px', borderRadius: 8, background: '#E8F9FF', border: '1px solid #a8c4f0', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, animation: `fadeInUp 0.3s ease ${idx * 0.04}s both`
                   }}>
                     <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
                       🚪
@@ -682,7 +682,7 @@ export default function Configuration() {
                       ) : (
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rm.name}</span>
                       )}
-                      <span style={{ fontSize: 10, color: '#80B3FF', fontWeight: 600 }}>Cap: {rm.capacity}</span>
+                      <span style={{ fontSize: 10, color: '#C4D9FF', fontWeight: 600 }}>Cap: {rm.capacity}</span>
                     </div>
                     <button onClick={() => setEditingItem({ type: 'rooms', id: rm.id, field: 'name', value: rm.name })} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}>✏️</button>
                     <button onClick={() => handleDelete('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}>🗑️</button>
@@ -702,7 +702,7 @@ export default function Configuration() {
         {/* Drag overlay */}
         <DragOverlay>
           {activeDragId ? (
-            <div style={{ padding: '10px 16px', borderRadius: 12, background: '#98E4FF', border: '1px solid #80B3FF', color: '#1a1a1a', fontSize: 13, fontWeight: 700, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', cursor: 'grabbing' }}>
+            <div style={{ padding: '10px 16px', borderRadius: 12, background: '#E8F9FF', border: '1px solid #a8c4f0', color: '#1a1a1a', fontSize: 13, fontWeight: 700, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', cursor: 'grabbing' }}>
               {faculties.find((f: any) => `fac-${f.id}` === activeDragId)?.name || 'Faculty'}
             </div>
           ) : null}
@@ -712,7 +712,7 @@ export default function Configuration() {
         {confirmDeleteObj && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <div style={{
-              background: '#98E4FF', border: '1px solid #80B3FF', padding: 24, borderRadius: 14,
+              background: '#E8F9FF', border: '1px solid #a8c4f0', padding: 24, borderRadius: 14,
               boxShadow: '0 20px 40px rgba(0,0,0,0.4)', width: confirmDeleteObj.type === 'branches' ? 380 : 320, textAlign: confirmDeleteObj.type === 'branches' ? 'left' : 'center', animation: 'fadeInUp 0.2s ease'
             }}>
               <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
@@ -733,7 +733,7 @@ export default function Configuration() {
               )}
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: '#FFFFFF', border: '1px solid #80B3FF', color: '#1a1a1a', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
+                <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: '#FFFFFF', border: '1px solid #a8c4f0', color: '#1a1a1a', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
                 <button onClick={confirmDeletion} style={{ flex: 1, padding: '10px 0', background: '#e11d48', border: 'none', color: '#1a1a1a', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Delete</button>
               </div>
             </div>
@@ -761,8 +761,8 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
         opacity: isDragging ? 0.4 : 1,
         padding: '12px 14px',
         borderRadius: 12,
-        background: isMapped ? 'rgba(16,185,129,0.06)' : '#80B3FF',
-        border: `1px solid ${isMapped ? 'rgba(16,185,129,0.2)' : '#80B3FF'}`,
+        background: isMapped ? 'rgba(16,185,129,0.06)' : '#C4D9FF',
+        border: `1px solid ${isMapped ? 'rgba(16,185,129,0.2)' : '#C4D9FF'}`,
         marginBottom: 6,
         cursor: 'grab',
         display: 'flex',
@@ -817,7 +817,7 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
             </div>
           </>
         )}
-        {isMapped && <span style={{ fontSize: 10, color: '#80B3FF', fontWeight: 600 }}>Mapped ✓</span>}
+        {isMapped && <span style={{ fontSize: 10, color: '#C4D9FF', fontWeight: 600 }}>Mapped ✓</span>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <button
@@ -845,8 +845,8 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
     <div ref={setNodeRef} style={{
       flex: 0.8,
       ...glassCard,
-      borderColor: isOver ? '#687EFF' : '#80B3FF',
-      background: isOver ? '#80B3FF' : '#80B3FF',
+      borderColor: isOver ? '#C5BAFF' : '#C4D9FF',
+      background: isOver ? '#C4D9FF' : '#C4D9FF',
       padding: 16,
       display: 'flex', flexDirection: 'column',
       transition: 'all 0.2s',
@@ -892,7 +892,7 @@ function DustbinZone({ isActive }: { isActive: boolean }) {
   return (
     <div ref={setNodeRef} style={{
       padding: '16px',
-      borderTop: '1px solid #80B3FF',
+      borderTop: '1px solid #C4D9FF',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       background: isOver ? 'rgba(239,68,68,0.12)' : isActive ? 'rgba(239,68,68,0.04)' : 'transparent',
       transition: 'all 0.2s',

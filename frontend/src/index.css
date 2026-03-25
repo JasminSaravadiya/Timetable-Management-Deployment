@@ -3,14 +3,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-themeBg: #B6FFFA;
-  --color-themeCard: #98E4FF;
-  --color-themeSurface: #80B3FF;
-  --color-themePrimary: #687EFF;
-  --color-themePrimaryHover: #5a6cff;
-  --color-themeSecondary: #80B3FF;
-  --color-themeBorder: #80B3FF;
-  --color-themeGridLine: #6a9be0;
+  --color-themeBg: #FBFBFB;
+  --color-themeCard: #E8F9FF;
+  --color-themeSurface: #C4D9FF;
+  --color-themePrimary: #C5BAFF;
+  --color-themePrimaryHover: #b0a3f0;
+  --color-themeSecondary: #C4D9FF;
+  --color-themeBorder: #C4D9FF;
+  --color-themeGridLine: #a8c4f0;
   --color-themeTextMain: #1a1a1a;
   --color-themeTextMuted: #3a3a5c;
 }
@@ -26,7 +26,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #B6FFFA;
+  background: #FBFBFB;
   /* Page Background */
   color: #1a1a1a;
   /* Primary Text */
@@ -69,27 +69,27 @@ body {
 
 /* EXTENDED THEME SYSTEM UTILITIES */
 .btn-primary {
-  background: linear-gradient(#687EFF, #5a6cff) !important;
-  color: #FFFFFF !important;
+  background: linear-gradient(#C5BAFF, #b0a3f0) !important;
+  color: #1a1a1a !important;
   padding: 10px 18px !important;
   border-radius: 12px !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 8px rgba(104, 126, 255, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(197, 186, 255, 0.35) !important;
   border: none !important;
   transition: all 0.2s ease !important;
   cursor: pointer;
 }
 
 .btn-primary:hover {
-  background: #5a6cff !important;
+  background: #b0a3f0 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(104, 126, 255, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(197, 186, 255, 0.45) !important;
 }
 
 input:focus,
 select:focus {
-  border-color: #687EFF !important;
-  box-shadow: 0 0 0 2px rgba(104, 126, 255, 0.2) !important;
+  border-color: #C5BAFF !important;
+  box-shadow: 0 0 0 2px rgba(197, 186, 255, 0.25) !important;
   outline: none !important;
 }
 
@@ -107,11 +107,11 @@ select:focus {
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(104, 126, 255, 0.15);
+    box-shadow: 0 0 20px rgba(197, 186, 255, 0.15);
   }
 
   50% {
-    box-shadow: 0 0 35px rgba(104, 126, 255, 0.3);
+    box-shadow: 0 0 35px rgba(197, 186, 255, 0.3);
   }
 }
 
@@ -138,10 +138,10 @@ select:focus {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(104, 126, 255, 0.3);
+  background: rgba(197, 186, 255, 0.35);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(104, 126, 255, 0.5);
+  background: rgba(197, 186, 255, 0.55);
 }
