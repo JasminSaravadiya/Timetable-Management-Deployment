@@ -113,6 +113,10 @@ export default function Configuration() {
     saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
+  // Temp ID counter for optimistic inserts (negative to avoid collisions with DB IDs)
+  const tempIdCounter = React.useRef(-1);
+  const nextTempId = () => tempIdCounter.current--;
+
   // Selection
   const [selectedSemId, setSelectedSemId] = useState<number | null>(null);
   const [showAllFaculty, setShowAllFaculty] = useState(false);
@@ -166,84 +170,77 @@ export default function Configuration() {
   const semSubjects = subjects.filter((s: any) => s.semester_id === selectedSemId);
 
   /* ─── CRUD helpers ─── */
-  const handleAddBranch = async () => {
-    if (!addBranchName.trim() || !currentConfig) return;
-    showSaving();
-    try {
-      const res = await axios.post(`${API_URL}/branches`, { name: addBranchName.trim(), config_id: currentConfig.id });
-      setBranches(prev => [...prev, res.data]);
-      setAddBranchName('');
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || 'Failed to add branch');
+  const handleAddBranch = () => {
+    const name = addBranchName.trim();
+    if (!name || !currentConfig) return;
+    if (branches.some((b: any) => b.name.toLowerCase() === name.toLowerCase())) {
+      alert('This entry already exists.'); return;
     }
+    const tempId = nextTempId();
+    setBranches(prev => [...prev, { id: tempId, name, config_id: currentConfig.id }]);
+    setAddBranchName(''); showSaving();
+    axios.post(`${API_URL}/branches`, { name, config_id: currentConfig.id })
+      .then(res => { setBranches(prev => prev.map(b => b.id === tempId ? res.data : b)); invalidateCache(); showSaved(); })
+      .catch(err => { setBranches(prev => prev.filter(b => b.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add branch'); });
   };
 
-  const handleAddSemester = async (branchId: number) => {
-    if (!addSemName.trim() || !currentConfig) return;
-    showSaving();
-    try {
-      const res = await axios.post(`${API_URL}/semesters`, { name: addSemName.trim(), branch_id: branchId, config_id: currentConfig.id });
-      setSemesters(prev => [...prev, res.data]);
-      setAddSemName('');
-      setShowAddSem(null);
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || 'Failed to add semester');
+  const handleAddSemester = (branchId: number) => {
+    const name = addSemName.trim();
+    if (!name || !currentConfig) return;
+    if (semesters.some((s: any) => s.branch_id === branchId && s.name.toLowerCase() === name.toLowerCase())) {
+      alert('This entry already exists.'); return;
     }
+    const tempId = nextTempId();
+    setSemesters(prev => [...prev, { id: tempId, name, branch_id: branchId, config_id: currentConfig.id }]);
+    setAddSemName(''); setShowAddSem(null); showSaving();
+    axios.post(`${API_URL}/semesters`, { name, branch_id: branchId, config_id: currentConfig.id })
+      .then(res => { setSemesters(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
+      .catch(err => { setSemesters(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add semester'); });
   };
 
-  const handleAddFaculty = async () => {
-    if (!addFacultyName.trim() || !currentConfig) return;
+  const handleAddFaculty = () => {
+    const name = addFacultyName.trim();
+    if (!name || !currentConfig) return;
+    if (faculties.some((f: any) => f.name.toLowerCase() === name.toLowerCase())) {
+      alert('This entry already exists.'); return;
+    }
     const mins = timeToMins(addFacultyWorkload);
-    showSaving();
-    try {
-      const res = await axios.post(`${API_URL}/faculties`, { name: addFacultyName.trim(), weekly_workload_minutes: mins, config_id: currentConfig.id });
-      setFaculties(prev => [...prev, res.data]);
-      setAddFacultyName('');
-      setAddFacultyWorkload('04:00');
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || 'Failed to add faculty');
-    }
+    const tempId = nextTempId();
+    setFaculties(prev => [...prev, { id: tempId, name, weekly_workload_minutes: mins, config_id: currentConfig.id, ignore_collision: false }]);
+    setAddFacultyName(''); setAddFacultyWorkload('04:00'); showSaving();
+    axios.post(`${API_URL}/faculties`, { name, weekly_workload_minutes: mins, config_id: currentConfig.id })
+      .then(res => { setFaculties(prev => prev.map(f => f.id === tempId ? res.data : f)); invalidateCache(); showSaved(); })
+      .catch(err => { setFaculties(prev => prev.filter(f => f.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add faculty'); });
   };
 
-  const handleAddSubject = async () => {
-    if (!addSubjectName.trim() || !selectedSemId || !currentConfig) return;
-    showSaving();
-    try {
-      const res = await axios.post(`${API_URL}/subjects`, { name: addSubjectName.trim(), semester_id: selectedSemId, weekly_hours: parseFloat(addSubjectHours) || 4, config_id: currentConfig.id });
-      setSubjects(prev => [...prev, res.data]);
-      setAddSubjectName('');
-      setAddSubjectHours('4');
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || 'Failed to add subject');
+  const handleAddSubject = () => {
+    const name = addSubjectName.trim();
+    if (!name || !selectedSemId || !currentConfig) return;
+    if (subjects.some((s: any) => s.semester_id === selectedSemId && s.name.toLowerCase() === name.toLowerCase())) {
+      alert('This entry already exists.'); return;
     }
+    const hours = parseFloat(addSubjectHours) || 4;
+    const tempId = nextTempId();
+    setSubjects(prev => [...prev, { id: tempId, name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id }]);
+    setAddSubjectName(''); setAddSubjectHours('4'); showSaving();
+    axios.post(`${API_URL}/subjects`, { name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id })
+      .then(res => { setSubjects(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
+      .catch(err => { setSubjects(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add subject'); });
   };
 
-  const handleAddRoom = async () => {
-    if (!addRoomName.trim() || !currentConfig) return;
-    showSaving();
-    try {
-      const res = await axios.post(`${API_URL}/rooms`, { name: addRoomName.trim(), capacity: parseInt(addRoomCapacity) || 60, config_id: currentConfig.id });
-      setRooms(prev => [...prev, res.data]);
-      setAddRoomName('');
-      setAddRoomCapacity('60');
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || 'Failed to add room');
+  const handleAddRoom = () => {
+    const name = addRoomName.trim();
+    if (!name || !currentConfig) return;
+    if (rooms.some((r: any) => r.name.toLowerCase() === name.toLowerCase())) {
+      alert('This entry already exists.'); return;
     }
+    const cap = parseInt(addRoomCapacity) || 60;
+    const tempId = nextTempId();
+    setRooms(prev => [...prev, { id: tempId, name, capacity: cap, config_id: currentConfig.id }]);
+    setAddRoomName(''); setAddRoomCapacity('60'); showSaving();
+    axios.post(`${API_URL}/rooms`, { name, capacity: cap, config_id: currentConfig.id })
+      .then(res => { setRooms(prev => prev.map(r => r.id === tempId ? res.data : r)); invalidateCache(); showSaved(); })
+      .catch(err => { setRooms(prev => prev.filter(r => r.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add room'); });
   };
 
   const handleDelete = (type: string, id: number) => {
@@ -288,45 +285,64 @@ export default function Configuration() {
     }
   };
 
-  const handleUnmapFaculty = async (facultyId: number) => {
+  const handleUnmapFaculty = (facultyId: number) => {
     if (!selectedSemId) return;
-    await axios.delete(`${API_URL}/mappings/faculty/${selectedSemId}/${facultyId}`);
-    invalidateCache();
-    setMappedFaculties(prev => prev.filter((f: any) => f.id !== facultyId));
+    setMappedFaculties(prev => prev.filter((f: any) => f.id !== facultyId)); // instant
+    axios.delete(`${API_URL}/mappings/faculty/${selectedSemId}/${facultyId}`)
+      .then(() => invalidateCache())
+      .catch(() => { invalidateCache(); fetchAll(); }); // rollback on error
   };
 
-  const handleInlineEdit = async () => {
+  const handleInlineEdit = () => {
     if (!editingItem) return;
     const { type, id, field, value } = editingItem;
+    setEditingItem(null); // close editor instantly
 
+    // Apply changes to local state immediately
+    const applyUpdate = (list: any[], setList: any) => {
+      setList(list.map((item: any) => {
+        if (item.id !== id) return item;
+        if (type === 'faculties' && field === 'complex') {
+          const parsed = JSON.parse(value);
+          return { ...item, name: parsed.name, weekly_workload_minutes: timeToMins(parsed.workload) };
+        }
+        if (field === 'ignore_collision') return { ...item, [field]: value === 'true' };
+        if (field === 'weekly_hours' || field === 'capacity') return { ...item, [field]: parseFloat(value) };
+        return { ...item, [field]: value };
+      }));
+    };
+    if (type === 'branches') applyUpdate(branches, setBranches);
+    else if (type === 'semesters') applyUpdate(semesters, setSemesters);
+    else if (type === 'subjects') applyUpdate(subjects, setSubjects);
+    else if (type === 'faculties') applyUpdate(faculties, setFaculties);
+    else if (type === 'rooms') applyUpdate(rooms, setRooms);
+
+    // Background save
     showSaving();
-    try {
-      let res;
-      if (type === 'faculties' && field === 'complex') {
-        const parsed = JSON.parse(value);
-        res = await axios.put(`${API_URL}/${type}/${id}`, {
-          name: parsed.name,
-          weekly_workload_minutes: timeToMins(parsed.workload)
-        });
-      } else if (type === 'faculties' && field === 'ignore_collision') {
-        res = await axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
-      } else {
-        res = await axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
-      }
-      // Optimistic: update the item in local state
-      const updatedItem = res.data;
-      if (type === 'branches') setBranches(prev => prev.map(b => b.id === id ? updatedItem : b));
-      else if (type === 'semesters') setSemesters(prev => prev.map(s => s.id === id ? updatedItem : s));
-      else if (type === 'subjects') setSubjects(prev => prev.map(s => s.id === id ? updatedItem : s));
-      else if (type === 'faculties') setFaculties(prev => prev.map(f => f.id === id ? updatedItem : f));
-      else if (type === 'rooms') setRooms(prev => prev.map(r => r.id === id ? updatedItem : r));
-      setEditingItem(null);
-      invalidateCache();
-      showSaved();
-    } catch (error: any) {
-      showError();
-      alert(error.response?.data?.detail || `Failed to update ${type}`);
+    let apiCall;
+    if (type === 'faculties' && field === 'complex') {
+      const parsed = JSON.parse(value);
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { name: parsed.name, weekly_workload_minutes: timeToMins(parsed.workload) });
+    } else if (type === 'faculties' && field === 'ignore_collision') {
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
+    } else {
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
     }
+    apiCall
+      .then(res => {
+        // Replace with server data to ensure consistency
+        const updated = res.data;
+        if (type === 'branches') setBranches(prev => prev.map(b => b.id === id ? updated : b));
+        else if (type === 'semesters') setSemesters(prev => prev.map(s => s.id === id ? updated : s));
+        else if (type === 'subjects') setSubjects(prev => prev.map(s => s.id === id ? updated : s));
+        else if (type === 'faculties') setFaculties(prev => prev.map(f => f.id === id ? updated : f));
+        else if (type === 'rooms') setRooms(prev => prev.map(r => r.id === id ? updated : r));
+        invalidateCache(); showSaved();
+      })
+      .catch(err => {
+        showError(); invalidateCache(); fetchAll(); // rollback by refetching
+        alert(err.response?.data?.detail || `Failed to update ${type}`);
+      });
   };
 
   /* ─── Drag handlers ─── */
@@ -613,14 +629,12 @@ export default function Configuration() {
                     onEditSubmit={handleInlineEdit}
                     onEditCancel={() => setEditingItem(null)}
                     onDelete={() => handleDelete('faculties', fac.id)}
-                    onToggleCollision={async (newVal: boolean) => {
+                    onToggleCollision={(newVal: boolean) => {
+                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f)); // instant
                       showSaving();
-                      try {
-                        const res = await axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal });
-                        setFaculties(prev => prev.map(f => f.id === fac.id ? res.data : f));
-                        invalidateCache();
-                        showSaved();
-                      } catch (err) { showError(); }
+                      axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal })
+                        .then(res => { setFaculties(prev => prev.map(f => f.id === fac.id ? res.data : f)); invalidateCache(); showSaved(); })
+                        .catch(() => { setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: !newVal } : f)); showError(); });
                     }}
                     isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
                   />
