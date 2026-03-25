@@ -106,9 +106,9 @@ export default function MasterGrid() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#ECE7D1] text-themeTextMain overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#B6FFFA] text-themeTextMain overflow-hidden">
       {/* Header Bar */}
-      <div className="bg-[#F4F0DF] p-4 border-b border-[#B8AC86] flex justify-between items-center shadow-lg z-10">
+      <div className="bg-[#98E4FF] p-4 border-b border-[#6a9be0] flex justify-between items-center shadow-lg z-10">
         <div>
           <h1 className="text-2xl font-bold text-black tracking-wide">
             {currentConfig?.name}
@@ -125,19 +125,19 @@ export default function MasterGrid() {
 
       {/* Grid Container */}
       <div className="flex-1 overflow-auto relative p-4 custom-scrollbar">
-        <div className="inline-block min-w-full rounded-2xl border border-[#B8AC86] bg-[#F4F0DF] backdrop-blur-sm overflow-hidden shadow-2xl">
+        <div className="inline-block min-w-full rounded-2xl border border-[#6a9be0] bg-[#98E4FF] backdrop-blur-sm overflow-hidden shadow-2xl">
 
-          <table className="w-full border-collapse border border-[#B8AC86]">
+          <table className="w-full border-collapse border border-[#6a9be0]">
             {/* Table Header: Branches and Semesters */}
-            <thead className="bg-[#DBCEA5] border-b border-[#B8AC86] sticky top-0 z-20">
+            <thead className="bg-[#80B3FF] border-b border-[#6a9be0] sticky top-0 z-20">
               <tr>
-                <th className="border-r border-[#B8AC86] p-3 min-w-[60px] bg-[#DBCEA5] z-30 sticky left-0 shadow-sm" rowSpan={2}>Day</th>
-                <th className="border-r border-[#B8AC86] p-3 min-w-[120px] bg-[#DBCEA5] z-30 sticky left-[60px] shadow-sm" rowSpan={2}>Time</th>
+                <th className="border-r border-[#6a9be0] p-3 min-w-[60px] bg-[#80B3FF] z-30 sticky left-0 shadow-sm text-white" rowSpan={2}>Day</th>
+                <th className="border-r border-[#6a9be0] p-3 min-w-[120px] bg-[#80B3FF] z-30 sticky left-[60px] shadow-sm text-white" rowSpan={2}>Time</th>
                 {branches.map((b: any) => {
                   const sems = semesters.filter((s: any) => s.branch_id === b.id);
                   if (sems.length === 0) return null;
                   return (
-                    <th key={b.id} colSpan={sems.length} className="border-r border-[#B8AC86] p-3 text-center font-bold text-[#2F2A1F] uppercase tracking-widest text-sm bg-[#DBCEA5]">
+                    <th key={b.id} colSpan={sems.length} className="border-r border-[#6a9be0] p-3 text-center font-bold text-white uppercase tracking-widest text-sm bg-[#80B3FF]">
                       {b.name}
                     </th>
                   );
@@ -147,7 +147,7 @@ export default function MasterGrid() {
                 {branches.map((b: any) => {
                   const sems = semesters.filter((s: any) => s.branch_id === b.id);
                   return sems.map((s: any) => (
-                    <th key={s.id} className="border-r border-[#B8AC86] p-2 text-center text-sm font-semibold text-[#2F2A1F] bg-[#DBCEA5] min-w-[200px]">
+                    <th key={s.id} className="border-r border-[#6a9be0] p-2 text-center text-sm font-semibold text-white bg-[#80B3FF] min-w-[200px]">
                       {s.name}
                     </th>
                   ));
@@ -174,21 +174,21 @@ export default function MasterGrid() {
                           {isFirstSlotOfDay && (
                             <td
                               rowSpan={daySlots.length}
-                              className="bg-[#DBCEA5] p-2 font-semibold text-[#5E5642] sticky left-0 z-20 border border-[#B8AC86] shadow-[1px_0_0_0_#334155] w-[60px] text-center"
+                              className="bg-[#80B3FF] p-2 font-semibold text-white sticky left-0 z-20 border border-[#6a9be0] shadow-[1px_0_0_0_#4a6fa5] w-[60px] text-center"
                             >
                               <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
                                 {day.toUpperCase()}
                               </div>
                             </td>
                           )}
-                          <td className="border border-[#B8AC86] p-3 text-xs font-semibold text-[#5E5642] sticky left-[60px] bg-[#DBCEA5] z-20 whitespace-nowrap text-center shadow-[1px_0_0_0_#334155]">
+                          <td className="border border-[#6a9be0] p-3 text-xs font-semibold text-white sticky left-[60px] bg-[#80B3FF] z-20 whitespace-nowrap text-center shadow-[1px_0_0_0_#4a6fa5]">
                             {timeObj.display}
                           </td>
 
                           {/* If it's a Break Slot */}
                           {timeObj.type === 'break' && (
-                            <td colSpan={totalSems} className="border border-[#B8AC86] bg-[#F4F0DF] p-2 text-center text-themeTextMuted font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
-                              <div className="absolute inset-0 flex items-center justify-center bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,'#DBCEA5'_10px,'#DBCEA5'_20px)]">
+                            <td colSpan={totalSems} className="border border-[#6a9be0] bg-[#98E4FF] p-2 text-center text-themeTextMuted font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                              <div className="absolute inset-0 flex items-center justify-center bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,'#80B3FF'_10px,'#80B3FF'_20px)]">
                                 --------- BREAK ---------
                               </div>
                             </td>
@@ -223,7 +223,7 @@ export default function MasterGrid() {
                                 <td
                                   key={`${day}-${time}-${s.id}`}
                                   rowSpan={maxSpan}
-                                  className="border border-[#B8AC86] p-2 relative min-h-[80px] cursor-pointer bg-[#F4F0DF] hover:bg-[#E6DEC4] transition-colors duration-200 align-top"
+                                  className="border border-[#6a9be0] p-2 relative min-h-[80px] cursor-pointer bg-[#98E4FF] hover:bg-[#88d4ea] transition-colors duration-200 align-top"
                                   onClick={() => handleCellClick(day, time, s.id)}
                                 >
                                   <div className="flex flex-col gap-1 w-full h-full">
@@ -237,7 +237,7 @@ export default function MasterGrid() {
                                         {cellAllocs.map((a: any) => (
                                           <div
                                             key={a.id}
-                                            className="bg-[#ECE7D1] border border-themePrimary rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer"
+                                            className="bg-[#B6FFFA] border border-themePrimary rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer"
                                             onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
                                           >
                                             <div className="font-bold text-themeTextMain text-xs truncate" title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
@@ -247,7 +247,7 @@ export default function MasterGrid() {
                                               {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
                                             </div>
                                             <div className="flex justify-between mt-1 items-center gap-1">
-                                              <span className="text-themeTextMuted text-[10px] bg-[#F4F0DF] px-1 rounded truncate max-w-[50%]">
+                                              <span className="text-themeTextMuted text-[10px] bg-[#98E4FF] px-1 rounded truncate max-w-[50%]">
                                                 {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
                                               </span>
                                               {a.batches && a.batches.length > 0 && <span className="text-blue-300 text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
@@ -402,10 +402,10 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#F4F0DF] p-6 md:p-8 rounded-3xl w-full max-w-xl border border-themePrimary shadow-[0_0_50px_rgba(0,0,0,0.5)] transform transition-all scale-100 max-h-[90vh] flex flex-col">
+      <div className="bg-[#98E4FF] p-6 md:p-8 rounded-3xl w-full max-w-xl border border-themePrimary shadow-[0_0_50px_rgba(0,0,0,0.5)] transform transition-all scale-100 max-h-[90vh] flex flex-col">
 
         {/* Header Section */}
-        <div className="flex justify-between items-start mb-4 border-b border-[#B8AC86] pb-4 shrink-0">
+        <div className="flex justify-between items-start mb-4 border-b border-[#6a9be0] pb-4 shrink-0">
           <div>
             <h2 className="text-2xl font-bold mb-1 text-black">{isEditing ? 'Edit Allocation' : 'Allocate Slot'}</h2>
             <p className="text-themeTextMuted text-sm font-medium">{cell.day} @ {cell.time.slice(0, 5)} (Semester ID: {cell.semId})</p>
@@ -418,11 +418,11 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-hidden h-full">
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
 
-            <div className="bg-[#F4F0DF] p-5 rounded-2xl border border-[#B8AC86] relative group transition hover:border-themePrimary">
+            <div className="bg-[#98E4FF] p-5 rounded-2xl border border-[#6a9be0] relative group transition hover:border-themePrimary">
               <div className="flex flex-col gap-4">
                 <div>
                   <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Subject</label>
-                  <select required className="w-full bg-white border border-[#C9BE9A] rounded-lg p-2.5 text-[#2F2A1F] text-sm transition shadow-sm"
+                  <select required className="w-full bg-white border border-[#80B3FF] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
                     value={allocationData.subject_id} onChange={(e) => handleChange('subject_id', e.target.value)}>
                     <option value="">Select subject...</option>
                     {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.weekly_hours}h/w)</option>)}
@@ -432,7 +432,7 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Faculty</label>
-                    <select required className="w-full bg-white border border-[#C9BE9A] rounded-lg p-2.5 text-[#2F2A1F] text-sm transition shadow-sm"
+                    <select required className="w-full bg-white border border-[#80B3FF] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
                       value={allocationData.faculty_id} onChange={(e) => handleChange('faculty_id', e.target.value)}>
                       <option value="">Select faculty...</option>
                       {faculties.map((f: any) => {
@@ -451,7 +451,7 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
                   </div>
                   <div>
                     <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Room</label>
-                    <select required className="w-full bg-white border border-[#C9BE9A] rounded-lg p-2.5 text-[#2F2A1F] text-sm transition shadow-sm"
+                    <select required className="w-full bg-white border border-[#80B3FF] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
                       value={allocationData.room_id} onChange={(e) => handleChange('room_id', e.target.value)}>
                       <option value="">Select room...</option>
                       {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>)}
@@ -462,12 +462,12 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Duration (mins)</label>
-                    <input type="number" required className="w-full bg-white border border-[#C9BE9A] rounded-lg p-2.5 text-[#2F2A1F] text-sm transition shadow-sm"
+                    <input type="number" required className="w-full bg-white border border-[#80B3FF] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
                       value={allocationData.duration_minutes} onChange={(e) => handleChange('duration_minutes', parseInt(e.target.value))} />
                   </div>
                   <div>
                     <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Batches (Comma separated)</label>
-                    <input type="text" placeholder="e.g. A, B, C" className="w-full bg-white border border-[#C9BE9A] rounded-lg p-2.5 text-[#2F2A1F] text-sm transition shadow-sm"
+                    <input type="text" placeholder="e.g. A, B, C" className="w-full bg-white border border-[#80B3FF] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
                       value={allocationData.batches_input} onChange={(e) => handleChange('batches_input', e.target.value)} />
                   </div>
                 </div>
@@ -475,8 +475,8 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-[#B8AC86] shrink-0 mt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#DBCEA5] hover:bg-[#C9BE9A] rounded-xl font-bold transition text-[#5E5642] shadow-sm">Cancel</button>
+          <div className="flex gap-4 pt-4 border-t border-[#6a9be0] shrink-0 mt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#80B3FF] hover:bg-[#6a9be0] rounded-xl font-bold transition text-white shadow-sm">Cancel</button>
             {isEditing && (
               <button type="button" onClick={handleDelete} disabled={loading} className="flex-1 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 rounded-xl font-bold transition text-red-400 shadow-sm disabled:opacity-50">Delete Allocation</button>
             )}

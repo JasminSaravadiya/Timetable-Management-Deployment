@@ -17,8 +17,8 @@ import { fetchConfigData, invalidateCache } from '../apiCache';
    SHARED STYLES
    ═══════════════════════════════════════════════════════ */
 const glassCard: React.CSSProperties = {
-  background: '#F4F0DF',
-  border: '1px solid #C9BE9A',
+  background: '#98E4FF',
+  border: '1px solid #80B3FF',
   borderRadius: 14,
   boxShadow: '0 3px 10px rgba(0,0,0,0.05)',
   backdropFilter: 'blur(8px)',
@@ -27,9 +27,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
   borderRadius: 8,
-  border: '1px solid #C9BE9A',
+  border: '1px solid #80B3FF',
   background: '#FFFFFF',
-  color: '#2F2A1F',
+  color: '#1a1a1a',
   fontSize: 13,
   fontWeight: 500,
   outline: 'none',
@@ -41,8 +41,8 @@ const btnPrimary: React.CSSProperties = {
   padding: '10px 18px',
   border: 'none',
   borderRadius: 8,
-  background: 'linear-gradient(#8A7650, #756341)',
-  color: '#2F2A1F',
+  background: 'linear-gradient(#687EFF, #5a6cff)',
+  color: '#1a1a1a',
   fontWeight: 700,
   fontSize: 13,
   cursor: 'pointer',
@@ -54,9 +54,9 @@ const iconBtnStyle: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: 8,
-  border: '1px solid #C9BE9A',
-  background: '#F4F0DF',
-  color: '#5E5642',
+  border: '1px solid #80B3FF',
+  background: '#98E4FF',
+  color: '#3a3a5c',
   fontSize: 13,
   cursor: 'pointer',
   display: 'flex',
@@ -66,7 +66,7 @@ const iconBtnStyle: React.CSSProperties = {
   fontFamily: "'Inter', sans-serif",
 };
 
-const ACCENT_COLORS = ['#8A7650', '#8E977D', '#8E977D', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
+const ACCENT_COLORS = ['#687EFF', '#80B3FF', '#80B3FF', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
 
 /* ═══════════════════════════════════════════════════════
    MAIN CONFIGURATION COMPONENT
@@ -375,14 +375,14 @@ export default function Configuration() {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div style={{ display: 'flex', height: '100vh', background: '#ECE7D1', color: '#2F2A1F', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: '100vh', background: '#B6FFFA', color: '#1a1a1a', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
 
         {/* ════════════ LEFT PANEL — Branch Tree ════════════ */}
-        <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #DBCEA5', background: '#F4F0DF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #80B3FF', background: '#98E4FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #DBCEA5' }}>
+          <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #80B3FF' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#8A7650, #756341)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#687EFF, #5a6cff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {currentConfig?.name || 'Timetable'}
               </h2>
               {/* Save status indicator */}
@@ -390,7 +390,7 @@ export default function Configuration() {
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
                   animation: 'fadeIn 0.2s ease',
-                  ...(saveStatus === 'saving' ? { color: '#8A7650', background: 'rgba(138,118,80,0.12)' } :
+                  ...(saveStatus === 'saving' ? { color: '#687EFF', background: 'rgba(104,126,255,0.12)' } :
                     saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
                     { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
                 }}>
@@ -398,11 +398,11 @@ export default function Configuration() {
                 </span>
               )}
             </div>
-            <p style={{ color: '#5E5642', fontSize: 11, margin: '4px 0 0' }}>Screen 2 — Config Data</p>
+            <p style={{ color: '#3a3a5c', fontSize: 11, margin: '4px 0 0' }}>Screen 2 — Config Data</p>
           </div>
 
           {/* Add Branch */}
-          <div style={{ padding: '12px 16px', display: 'flex', gap: 6, borderBottom: '1px solid #DBCEA5' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', gap: 6, borderBottom: '1px solid #80B3FF' }}>
             <input
               placeholder="Branch name…"
               value={addBranchName}
@@ -429,10 +429,10 @@ export default function Configuration() {
                         onBlur={handleInlineEdit}
                         style={{ ...inputStyle, fontSize: 12, padding: '4px 8px', flexGrow: 1 }} />
                     ) : (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#2F2A1F', flexGrow: 1, cursor: 'default' }}>{branch.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', flexGrow: 1, cursor: 'default' }}>{branch.name}</span>
                     )}
-                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }} title="Delete">🗑️</button>
+                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }} title="Delete">🗑️</button>
                     <button onClick={() => { setShowAddSem(showAddSem === branch.id ? null : branch.id); setAddSemName(''); }} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: accent }} title="Add Semester">+</button>
                   </div>
 
@@ -469,22 +469,22 @@ export default function Configuration() {
                           {branch.name} {sem.name}
                         </span>
                       )}
-                      <button onClick={e => { e.stopPropagation(); setEditingItem({ type: 'semesters', id: sem.id, field: 'name', value: sem.name }); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642', opacity: 0.6 }}>✏️</button>
-                      <button onClick={e => { e.stopPropagation(); handleDelete('semesters', sem.id); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642', opacity: 0.6 }}>🗑️</button>
+                      <button onClick={e => { e.stopPropagation(); setEditingItem({ type: 'semesters', id: sem.id, field: 'name', value: sem.name }); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c', opacity: 0.6 }}>✏️</button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete('semesters', sem.id); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c', opacity: 0.6 }}>🗑️</button>
                     </div>
                   ))}
                 </div>
               );
             })}
             {branches.length === 0 && (
-              <p style={{ color: '#5E5642', fontSize: 12, textAlign: 'center', padding: '24px 0' }}>
+              <p style={{ color: '#3a3a5c', fontSize: 12, textAlign: 'center', padding: '24px 0' }}>
                 Add your first branch above
               </p>
             )}
           </div>
 
           {/* Next button */}
-          <div style={{ padding: '16px', borderTop: '1px solid #DBCEA5' }}>
+          <div style={{ padding: '16px', borderTop: '1px solid #80B3FF' }}>
             <button onClick={() => navigate('/grid')} className="btn-primary" style={{ width: '100%', padding: '12px 0', borderRadius: 12 }}>
               Next →
             </button>
@@ -496,24 +496,24 @@ export default function Configuration() {
           {selectedSemId && selectedBranch && selectedSem ? (
             <>
               {/* Semester header */}
-              <div style={{ padding: '20px 28px 12px', borderBottom: '1px solid #DBCEA5' }}>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#2F2A1F' }}>
+              <div style={{ padding: '20px 28px 12px', borderBottom: '1px solid #80B3FF' }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#1a1a1a' }}>
                   {selectedBranch.name} — {selectedSem.name}
                 </h2>
-                <p style={{ color: '#5E5642', fontSize: 12, margin: '4px 0 0' }}>Manage subjects and assign faculty</p>
+                <p style={{ color: '#3a3a5c', fontSize: 12, margin: '4px 0 0' }}>Manage subjects and assign faculty</p>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', gap: 20 }}>
                 {/* ── Subjects Section ── */}
                 <div style={{ flex: 1.2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#5E5642', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#3a3a5c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       📚 Subjects
                     </h3>
                   </div>
 
                   {/* Subject header row */}
-                  <div style={{ display: 'flex', padding: '8px 14px', fontSize: 11, fontWeight: 700, color: '#5E5642', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #DBCEA5' }}>
+                  <div style={{ display: 'flex', padding: '8px 14px', fontSize: 11, fontWeight: 700, color: '#3a3a5c', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #80B3FF' }}>
                     <span style={{ flex: 1 }}>Subject</span>
                     <span style={{ width: 80, textAlign: 'center' }}>Hours</span>
                     <span style={{ width: 60 }}></span>
@@ -521,7 +521,7 @@ export default function Configuration() {
 
                   {/* Subject rows */}
                   {semSubjects.map((sub: any, idx: number) => (
-                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #DBCEA5', animation: `fadeInUp 0.3s ease ${idx * 0.04}s both` }}>
+                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #80B3FF', animation: `fadeInUp 0.3s ease ${idx * 0.04}s both` }}>
                       {editingItem?.type === 'subjects' && editingItem.id === sub.id ? (
                         <>
                           <input autoFocus value={editingItem.value} onChange={e => setEditingItem({ ...editingItem, value: e.target.value })}
@@ -531,7 +531,7 @@ export default function Configuration() {
                         </>
                       ) : (
                         <>
-                          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#2F2A1F' }}>{sub.name}</span>
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{sub.name}</span>
                           <span style={{ width: 80, textAlign: 'center', fontSize: 13, fontWeight: 600, color: ACCENT_COLORS[idx % ACCENT_COLORS.length] }}>{sub.weekly_hours}h</span>
                           <div style={{ width: 60, display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                             <button onClick={() => setEditingItem({ type: 'subjects', id: sub.id, field: 'name', value: sub.name })} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }}>✏️</button>
@@ -553,7 +553,7 @@ export default function Configuration() {
                   </div>
 
                   {semSubjects.length === 0 && (
-                    <p style={{ color: '#5E5642', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No subjects yet — add one above</p>
+                    <p style={{ color: '#3a3a5c', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No subjects yet — add one above</p>
                   )}
                 </div>
 
@@ -567,26 +567,26 @@ export default function Configuration() {
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, animation: 'fadeIn 0.4s ease' }}>
-              <div style={{ width: 72, height: 72, borderRadius: 18, background: '#F4F0DF', border: '1px solid rgba(138,118,80,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎯</div>
-              <p style={{ color: '#5E5642', fontSize: 15, fontWeight: 600 }}>Select a semester</p>
-              <p style={{ color: '#5E5642', fontSize: 12 }}>Choose a branch & semester from the left panel</p>
+              <div style={{ width: 72, height: 72, borderRadius: 18, background: '#98E4FF', border: '1px solid rgba(104,126,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎯</div>
+              <p style={{ color: '#3a3a5c', fontSize: 15, fontWeight: 600 }}>Select a semester</p>
+              <p style={{ color: '#3a3a5c', fontSize: 12 }}>Choose a branch & semester from the left panel</p>
             </div>
           )}
         </div>
 
         {/* ════════════ RIGHT PANEL — Faculty & Rooms ════════════ */}
-        <div style={{ width: 280, minWidth: 280, borderLeft: '1px solid #DBCEA5', background: '#F4F0DF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ width: 280, minWidth: 280, borderLeft: '1px solid #80B3FF', background: '#98E4FF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* ----- TABS HEADER ----- */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #DBCEA5' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #80B3FF' }}>
             <button
               onClick={() => setActiveTab('faculty')}
-              style={{ flex: 1, padding: '16px 0', background: activeTab === 'faculty' ? '#DBCEA5' : 'transparent', border: 'none', borderBottom: activeTab === 'faculty' ? '2px solid #8A7650' : '2px solid transparent', color: activeTab === 'faculty' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
+              style={{ flex: 1, padding: '16px 0', background: activeTab === 'faculty' ? '#80B3FF' : 'transparent', border: 'none', borderBottom: activeTab === 'faculty' ? '2px solid #687EFF' : '2px solid transparent', color: activeTab === 'faculty' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               👥 Faculty
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              style={{ flex: 1, padding: '16px 0', background: activeTab === 'rooms' ? '#DBCEA5' : 'transparent', border: 'none', borderBottom: activeTab === 'rooms' ? '2px solid #8E977D' : '2px solid transparent', color: activeTab === 'rooms' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
+              style={{ flex: 1, padding: '16px 0', background: activeTab === 'rooms' ? '#80B3FF' : 'transparent', border: 'none', borderBottom: activeTab === 'rooms' ? '2px solid #80B3FF' : '2px solid transparent', color: activeTab === 'rooms' ? '#2B2B2B' : '#5A5A5A', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
               🏢 Rooms
             </button>
           </div>
@@ -596,9 +596,9 @@ export default function Configuration() {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Header */}
               <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#2F2A1F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Faculty List</h3>
+                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Faculty List</h3>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setShowAllFaculty(!showAllFaculty)} style={{ ...iconBtnStyle, fontSize: 10, width: 'auto', padding: '4px 8px', height: 22, color: showAllFaculty ? '#8A7650' : '#5A5A5A' }}>
+                  <button onClick={() => setShowAllFaculty(!showAllFaculty)} style={{ ...iconBtnStyle, fontSize: 10, width: 'auto', padding: '4px 8px', height: 22, color: showAllFaculty ? '#687EFF' : '#5A5A5A' }}>
                     {showAllFaculty ? 'Hide' : 'All'}
                   </button>
                 </div>
@@ -640,7 +640,7 @@ export default function Configuration() {
                   />
                 ))}
                 {faculties.length === 0 && (
-                  <p style={{ color: '#5E5642', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Add your first faculty</p>
+                  <p style={{ color: '#3a3a5c', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Add your first faculty</p>
                 )}
               </div>
             </div>
@@ -650,7 +650,7 @@ export default function Configuration() {
           {activeTab === 'rooms' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ padding: '16px 16px 8px' }}>
-                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#2F2A1F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Room List</h3>
+                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Room List</h3>
               </div>
 
               {/* Add Room */}
@@ -668,7 +668,7 @@ export default function Configuration() {
               <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
                 {rooms.map((rm: any, idx: number) => (
                   <div key={rm.id} style={{
-                    padding: '10px 12px', borderRadius: 8, background: '#F4F0DF', border: '1px solid #C9BE9A', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, animation: `fadeInUp 0.3s ease ${idx * 0.04}s both`
+                    padding: '10px 12px', borderRadius: 8, background: '#98E4FF', border: '1px solid #80B3FF', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, animation: `fadeInUp 0.3s ease ${idx * 0.04}s both`
                   }}>
                     <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
                       🚪
@@ -680,16 +680,16 @@ export default function Configuration() {
                           onBlur={handleInlineEdit}
                           style={{ ...inputStyle, fontSize: 12, padding: '2px 6px' }} />
                       ) : (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#2F2A1F', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rm.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rm.name}</span>
                       )}
-                      <span style={{ fontSize: 10, color: '#8E977D', fontWeight: 600 }}>Cap: {rm.capacity}</span>
+                      <span style={{ fontSize: 10, color: '#80B3FF', fontWeight: 600 }}>Cap: {rm.capacity}</span>
                     </div>
-                    <button onClick={() => setEditingItem({ type: 'rooms', id: rm.id, field: 'name', value: rm.name })} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }}>✏️</button>
-                    <button onClick={() => handleDelete('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }}>🗑️</button>
+                    <button onClick={() => setEditingItem({ type: 'rooms', id: rm.id, field: 'name', value: rm.name })} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}>✏️</button>
+                    <button onClick={() => handleDelete('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}>🗑️</button>
                   </div>
                 ))}
                 {rooms.length === 0 && (
-                  <p style={{ color: '#5E5642', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Add your first room</p>
+                  <p style={{ color: '#3a3a5c', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Add your first room</p>
                 )}
               </div>
             </div>
@@ -702,7 +702,7 @@ export default function Configuration() {
         {/* Drag overlay */}
         <DragOverlay>
           {activeDragId ? (
-            <div style={{ padding: '10px 16px', borderRadius: 12, background: '#F4F0DF', border: '1px solid #C9BE9A', color: '#2F2A1F', fontSize: 13, fontWeight: 700, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', cursor: 'grabbing' }}>
+            <div style={{ padding: '10px 16px', borderRadius: 12, background: '#98E4FF', border: '1px solid #80B3FF', color: '#1a1a1a', fontSize: 13, fontWeight: 700, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', cursor: 'grabbing' }}>
               {faculties.find((f: any) => `fac-${f.id}` === activeDragId)?.name || 'Faculty'}
             </div>
           ) : null}
@@ -712,29 +712,29 @@ export default function Configuration() {
         {confirmDeleteObj && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <div style={{
-              background: '#F4F0DF', border: '1px solid #C9BE9A', padding: 24, borderRadius: 14,
+              background: '#98E4FF', border: '1px solid #80B3FF', padding: 24, borderRadius: 14,
               boxShadow: '0 20px 40px rgba(0,0,0,0.4)', width: confirmDeleteObj.type === 'branches' ? 380 : 320, textAlign: confirmDeleteObj.type === 'branches' ? 'left' : 'center', animation: 'fadeInUp 0.2s ease'
             }}>
               <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#2F2A1F', textAlign: 'center' }}>Confirm Deletion</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#1a1a1a', textAlign: 'center' }}>Confirm Deletion</h3>
 
               {confirmDeleteObj.type === 'branches' ? (
                 <div style={{ background: 'rgba(239,68,68,0.1)', padding: '12px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', marginBottom: 24 }}>
                   <p style={{ margin: '0 0 8px', fontSize: 13, color: '#fca5a5', fontWeight: 600 }}>Are you sure you want to delete this branch?</p>
                   <p style={{ margin: '0 0 4px', fontSize: 12, color: '#cbd5e1' }}>Deleting a branch will remove:</p>
-                  <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 12, color: '#5E5642' }}>
+                  <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 12, color: '#3a3a5c' }}>
                     <li>All semesters inside the branch</li>
                     <li>Subjects under those semesters</li>
                   </ul>
                   <p style={{ margin: 0, fontSize: 12, color: '#f87171', fontWeight: 600 }}>This action cannot be undone.</p>
                 </div>
               ) : (
-                <p style={{ margin: '0 0 24px', fontSize: 13, color: '#5E5642', textAlign: 'center' }}>Are you sure you want to delete this item?</p>
+                <p style={{ margin: '0 0 24px', fontSize: 13, color: '#3a3a5c', textAlign: 'center' }}>Are you sure you want to delete this item?</p>
               )}
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: '#FFFFFF', border: '1px solid #C9BE9A', color: '#2F2A1F', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
-                <button onClick={confirmDeletion} style={{ flex: 1, padding: '10px 0', background: '#e11d48', border: 'none', color: '#2F2A1F', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Delete</button>
+                <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: '#FFFFFF', border: '1px solid #80B3FF', color: '#1a1a1a', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
+                <button onClick={confirmDeletion} style={{ flex: 1, padding: '10px 0', background: '#e11d48', border: 'none', color: '#1a1a1a', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Delete</button>
               </div>
             </div>
           </div>
@@ -761,8 +761,8 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
         opacity: isDragging ? 0.4 : 1,
         padding: '12px 14px',
         borderRadius: 12,
-        background: isMapped ? 'rgba(16,185,129,0.06)' : '#DBCEA5',
-        border: `1px solid ${isMapped ? 'rgba(16,185,129,0.2)' : '#DBCEA5'}`,
+        background: isMapped ? 'rgba(16,185,129,0.06)' : '#80B3FF',
+        border: `1px solid ${isMapped ? 'rgba(16,185,129,0.2)' : '#80B3FF'}`,
         marginBottom: 6,
         cursor: 'grab',
         display: 'flex',
@@ -790,8 +790,8 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
           </div>
         ) : (
           <>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#2F2A1F', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faculty.name}</span>
-            <span style={{ fontSize: 10, color: '#5E5642' }}>Workload: {minsToTime(faculty.weekly_workload_minutes)} (weekly)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faculty.name}</span>
+            <span style={{ fontSize: 10, color: '#3a3a5c' }}>Workload: {minsToTime(faculty.weekly_workload_minutes)} (weekly)</span>
 
             {/* Ignore Collision Toggle */}
             <div
@@ -800,7 +800,7 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
               onMouseDown={e => e.stopPropagation()}
               onPointerDown={e => e.stopPropagation()}
             >
-              <span style={{ fontSize: 10, color: '#5E5642', fontWeight: 600 }}>Ignore Collision</span>
+              <span style={{ fontSize: 10, color: '#3a3a5c', fontWeight: 600 }}>Ignore Collision</span>
               <input
                 type="checkbox"
                 checked={faculty.ignore_collision || false}
@@ -817,18 +817,18 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
             </div>
           </>
         )}
-        {isMapped && <span style={{ fontSize: 10, color: '#8E977D', fontWeight: 600 }}>Mapped ✓</span>}
+        {isMapped && <span style={{ fontSize: 10, color: '#80B3FF', fontWeight: 600 }}>Mapped ✓</span>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <button
           onClick={e => { e.stopPropagation(); onEdit(); }}
           onPointerDown={e => e.stopPropagation()}
-          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }}
+          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}
         >✏️</button>
         <button
           onClick={e => { e.stopPropagation(); onDelete(); }}
           onPointerDown={e => e.stopPropagation()}
-          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#5E5642' }}
+          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#3a3a5c' }}
         >🗑️</button>
       </div>
     </div>
@@ -845,13 +845,13 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
     <div ref={setNodeRef} style={{
       flex: 0.8,
       ...glassCard,
-      borderColor: isOver ? '#8A7650' : '#DBCEA5',
-      background: isOver ? '#DBCEA5' : '#DBCEA5',
+      borderColor: isOver ? '#687EFF' : '#80B3FF',
+      background: isOver ? '#80B3FF' : '#80B3FF',
       padding: 16,
       display: 'flex', flexDirection: 'column',
       transition: 'all 0.2s',
     }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#5E5642', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#3a3a5c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         👥 {semLabel} Faculties
       </h3>
 
@@ -865,7 +865,7 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
           }}>
             <div>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#d1fae5' }}>{fac.name}</span>
-              <p style={{ fontSize: 10, color: '#5E5642', margin: '2px 0 0' }}>Remaining Workload</p>
+              <p style={{ fontSize: 10, color: '#3a3a5c', margin: '2px 0 0' }}>Remaining Workload</p>
             </div>
             <button onClick={() => onUnmap(fac.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }} title="Unmap faculty">✕</button>
           </div>
@@ -873,7 +873,7 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
         {mappedFaculties.length === 0 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: 8 }}>
             <span style={{ fontSize: 24 }}>↩️</span>
-            <p style={{ color: '#5E5642', fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>
+            <p style={{ color: '#3a3a5c', fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>
               Drag faculty from the<br />right panel to assign
             </p>
           </div>
@@ -892,7 +892,7 @@ function DustbinZone({ isActive }: { isActive: boolean }) {
   return (
     <div ref={setNodeRef} style={{
       padding: '16px',
-      borderTop: '1px solid #DBCEA5',
+      borderTop: '1px solid #80B3FF',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       background: isOver ? 'rgba(239,68,68,0.12)' : isActive ? 'rgba(239,68,68,0.04)' : 'transparent',
       transition: 'all 0.2s',

@@ -177,26 +177,26 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
 
   const tabStyle = (tab: string) =>
     `flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-center cursor-pointer transition-all border-b-2 ${activeTab === tab
-      ? 'border-transparent text-white bg-[#8A7650]'
-      : 'border-transparent text-[#5E5642] bg-[#DBCEA5] hover:bg-[#C9BE9A]'
+      ? 'border-transparent text-white bg-[#687EFF]'
+      : 'border-transparent text-[#3a3a5c] bg-[#80B3FF] hover:bg-[#6a9be0]'
     }`;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-[#ECE7D1] border border-[#C9BE9A] rounded-2xl shadow-2xl w-full max-w-[95vw] h-[90vh] flex overflow-hidden"
+        className="bg-[#B6FFFA] border border-[#80B3FF] rounded-2xl shadow-2xl w-full max-w-[95vw] h-[90vh] flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ══════ LEFT PANEL ══════ */}
-        <div className="w-[280px] min-w-[280px] border-r border-[#C9BE9A] flex flex-col bg-[#F4F0DF]">
+        <div className="w-[280px] min-w-[280px] border-r border-[#80B3FF] flex flex-col bg-[#98E4FF]">
           {/* Header */}
-          <div className="p-4 border-b border-[#C9BE9A] flex justify-between items-center bg-[#DBCEA5]">
-            <h2 className="text-lg font-bold text-[#2F2A1F]">Export Preview</h2>
+          <div className="p-4 border-b border-[#80B3FF] flex justify-between items-center bg-[#80B3FF]">
+            <h2 className="text-lg font-bold text-white">Export Preview</h2>
             <button onClick={onClose} className="w-8 h-8 rounded-lg bg-themePrimary hover:bg-red-500/80 text-white flex items-center justify-center text-sm font-bold transition">✕</button>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-[#C9BE9A]">
+          <div className="flex border-b border-[#80B3FF]">
             <button className={tabStyle('branch')} onClick={() => { setActiveTab('branch'); setSelectedType('master'); }}>Branch</button>
             <button className={tabStyle('faculty')} onClick={() => { setActiveTab('faculty'); setSelectedType('master'); }}>Faculty</button>
             <button className={tabStyle('room')} onClick={() => { setActiveTab('room'); setSelectedType('master'); }}>Room</button>
@@ -266,7 +266,7 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
           </div>
 
           {/* Export Buttons */}
-          <div className="p-3 border-t border-[#C9BE9A] space-y-2">
+          <div className="p-3 border-t border-[#80B3FF] space-y-2">
             <button onClick={handleExport} className="w-full btn-primary text-sm flex items-center justify-center gap-2">
               ⬇ Export Selected
             </button>
@@ -277,14 +277,14 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
         </div>
 
         {/* ══════ RIGHT PANEL — PREVIEW ══════ */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#ECE7D1]">
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#B6FFFA]">
           {/* Preview Header */}
-          <div className="p-4 border-b border-[#C9BE9A] bg-[#ECE7D1] flex items-center justify-between shrink-0">
+          <div className="p-4 border-b border-[#80B3FF] bg-[#B6FFFA] flex items-center justify-between shrink-0">
             <div>
-              <h3 className="text-[#2F2A1F] font-bold text-lg">{selectionLabel}</h3>
-              <p className="text-[#5E5642] text-xs mt-0.5">{filteredAllocations.length} allocations • {previewColumns.length} columns</p>
+              <h3 className="text-[#1a1a1a] font-bold text-lg">{selectionLabel}</h3>
+              <p className="text-[#3a3a5c] text-xs mt-0.5">{filteredAllocations.length} allocations • {previewColumns.length} columns</p>
             </div>
-            <div className="px-3 py-1.5 bg-[#8A7650]/10 border border-themePrimary/50 rounded-full text-themePrimary text-xs font-bold">
+            <div className="px-3 py-1.5 bg-[#687EFF]/10 border border-themePrimary/50 rounded-full text-themePrimary text-xs font-bold">
               Preview Mode
             </div>
           </div>
@@ -294,11 +294,11 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
             {/* Title Header mimicking Excel */}
             <div className="mb-4 text-center">
               <div className="text-themeTextMuted text-xs font-bold uppercase tracking-widest mb-1">University Timetable</div>
-              <div className="text-[#2F2A1F] text-lg font-bold">{currentConfig?.name || 'Master Timetable'}</div>
+              <div className="text-[#1a1a1a] text-lg font-bold">{currentConfig?.name || 'Master Timetable'}</div>
               <div className="text-themeTextMuted text-xs mt-1">{selectionLabel} • {currentConfig?.start_time?.slice(0, 5)} – {currentConfig?.end_time?.slice(0, 5)}</div>
             </div>
 
-            <div className="bg-[#DBCEA5] border border-themeSurface rounded-xl overflow-hidden">
+            <div className="bg-[#80B3FF] border border-themeSurface rounded-xl overflow-hidden">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-themeSurface">
@@ -317,11 +317,11 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
                   {DAYS.map((day) => (
                     <React.Fragment key={day}>
                       {timeslots.map((slot: any, slotIdx: number) => (
-                        <tr key={`${day}-${slot.start}`} className="bg-[#F4F0DF] hover:bg-[#F4F0DF]/50 transition">
+                        <tr key={`${day}-${slot.start}`} className="bg-[#98E4FF] hover:bg-[#98E4FF]/50 transition">
                           {slotIdx === 0 && (
                             <td
                               rowSpan={timeslots.length}
-                              className="border border-themePrimary p-2 text-themePrimary-200 font-bold text-center bg-[#DBCEA5] sticky left-0 z-10"
+                              className="border border-themePrimary p-2 text-themePrimary-200 font-bold text-center bg-[#80B3FF] sticky left-0 z-10"
                               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
                             >
                               {day.toUpperCase()}
@@ -345,7 +345,7 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
                                   {cellAllocs.length > 0 ? (
                                     <div className="space-y-1">
                                       {cellAllocs.map((a: any) => (
-                                        <div key={a.id} className="bg-[#F4F0DF] border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
+                                        <div key={a.id} className="bg-[#98E4FF] border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
                                           <div className="font-bold text-themePrimary-200 truncate">{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
                                           <div className="text-themeSecondary truncate">{faculties.find((f: any) => f.id === a.faculty_id)?.name}</div>
                                           <div className="flex justify-between text-themeTextMuted">
