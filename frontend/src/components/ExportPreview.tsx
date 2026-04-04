@@ -80,15 +80,15 @@ export default function ExportPreview() {
   };
 
   return (
-    <div className="flex h-screen bg-[#FBFBFB] text-[#1a1a1a]">
+    <div className="flex h-screen bg-[#0D0F14] text-[#E5E7EB]">
       {/* Sidebar Controls */}
-      <div className="w-80 bg-[#E8F9FF] border-r border-[#a8c4f0] p-6 flex flex-col shadow-xl z-10">
-        <h2 className="text-2xl font-black text-[#1a1a1a] mb-8 border-b border-[#a8c4f0] pb-4">Export Options</h2>
+      <div className="w-80 bg-[#1C1F2A] border-r border-[#2E3345] p-6 flex flex-col shadow-xl z-10">
+        <h2 className="text-2xl font-black text-[#E5E7EB] mb-8 border-b border-[#2E3345] pb-4">Export Options</h2>
 
         <div className="flex flex-col gap-6 flex-1">
           <label className="flex flex-col gap-2">
             <span className="font-bold text-sm text-themeTextMuted uppercase tracking-widest">Filter By</span>
-            <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary font-medium"
+            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary font-medium"
               value={filterType} onChange={(e) => { setFilterType(e.target.value); setFilterId(''); }}>
               <option value="all">Master (All Data)</option>
               <option value="semester">Specific Semester</option>
@@ -98,7 +98,7 @@ export default function ExportPreview() {
           </label>
 
           {filterType === 'semester' && (
-            <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
+            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Semester...</option>
               {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name} (Branch {s.branch_id})</option>)}
@@ -106,7 +106,7 @@ export default function ExportPreview() {
           )}
 
           {filterType === 'faculty' && (
-            <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
+            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Faculty...</option>
               {faculties.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -114,7 +114,7 @@ export default function ExportPreview() {
           )}
 
           {filterType === 'room' && (
-            <select className="p-3 bg-[#FFFFFF] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
+            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
               value={filterId} onChange={(e) => setFilterId(e.target.value)}>
               <option value="">Select Room...</option>
               {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -127,7 +127,7 @@ export default function ExportPreview() {
           <span className="group-hover:translate-x-1 transition-transform">&darr;</span>
         </button>
 
-        <button onClick={() => navigate('/grid')} className="mt-4 px-6 py-4 bg-[#C4D9FF] hover:bg-[#a8c4f0] text-[#3a3a5c] hover:text-[#1a1a1a] font-bold rounded-xl transition-all w-full">
+        <button onClick={() => navigate('/grid')} className="mt-4 px-6 py-4 bg-[#2E3345] hover:bg-[#2E3345] text-[#9CA3AF] hover:text-[#E5E7EB] font-bold rounded-xl transition-all w-full">
           &larr; Back to Grid
         </button>
       </div>
@@ -138,14 +138,14 @@ export default function ExportPreview() {
           <h1 className="text-3xl font-bold text-themeTextMain">
             Preview Data Grid
           </h1>
-          <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full font-bold text-sm">
+          <div className="px-4 py-2 bg-[#C4B5FD]/10 text-[#C4B5FD] border border-[#C4B5FD]/30 rounded-full font-bold text-sm">
             {exportData.length} records matching '{filterType}'
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-2xl shadow-lg border border-themeSurface overflow-auto">
+        <div className="flex-1 bg-[#1C1F2A] rounded-2xl shadow-lg border border-[#2E3345] overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#FFFFFF] sticky top-0 border-b border-themeSurface shadow-sm z-10">
+            <thead className="bg-[#262A36] sticky top-0 border-b border-[#2E3345] shadow-sm z-10">
               <tr>
                 {['Day', 'Start', 'Dur(m)', 'Branch', 'Sem', 'Subject', 'Faculty', 'Room', 'Batch'].map(header => (
                   <th key={header} className="p-4 text-xs font-black text-themeTextMuted uppercase tracking-widest">{header}</th>
@@ -159,7 +159,7 @@ export default function ExportPreview() {
                 </tr>
               ) : (
                 exportData.map((row: any, idx: number) => (
-                  <tr key={idx} className="border-b border-themeSurface hover:bg-[#FBFBFB] transition-colors">
+                  <tr key={idx} className="border-b border-themeSurface hover:bg-[#0D0F14] transition-colors">
                     <td className="p-4 font-semibold text-themeTextMain">{row.Day}</td>
                     <td className="p-4 text-themeTextMuted">{row.StartTime.slice(0, 5)}</td>
                     <td className="p-4 text-themeTextMuted">{row.DurationMins}</td>

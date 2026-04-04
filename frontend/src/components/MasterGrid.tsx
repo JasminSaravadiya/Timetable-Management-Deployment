@@ -8,6 +8,16 @@ import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/* Pastel subject block colors for the dark theme */
+const SUBJECT_COLORS = [
+  { bg: 'rgba(196,181,253,0.12)', border: 'rgba(196,181,253,0.3)', text: '#C4B5FD' },   // lavender
+  { bg: 'rgba(163,230,53,0.10)', border: 'rgba(163,230,53,0.25)', text: '#A3E635' },     // mint
+  { bg: 'rgba(103,232,249,0.10)', border: 'rgba(103,232,249,0.25)', text: '#67E8F9' },   // cyan
+  { bg: 'rgba(253,230,138,0.10)', border: 'rgba(253,230,138,0.25)', text: '#FDE68A' },   // yellow
+  { bg: 'rgba(249,168,212,0.10)', border: 'rgba(249,168,212,0.25)', text: '#F9A8D4' },   // pink
+  { bg: 'rgba(110,231,183,0.10)', border: 'rgba(110,231,183,0.25)', text: '#6EE7B7' },   // emerald
+];
+
 export default function MasterGrid() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
@@ -106,14 +116,14 @@ export default function MasterGrid() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#FBFBFB] text-themeTextMain overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#0D0F14] text-themeTextMain overflow-hidden">
       {/* Header Bar */}
-      <div className="bg-[#E8F9FF] p-4 border-b border-[#a8c4f0] flex justify-between items-center shadow-lg z-10">
+      <div className="bg-[#1C1F2A] p-4 border-b border-[#2E3345] flex justify-between items-center shadow-lg z-10">
         <div>
-          <h1 className="text-2xl font-bold text-black tracking-wide">
+          <h1 className="text-2xl font-bold text-[#E5E7EB] tracking-wide">
             {currentConfig?.name}
           </h1>
-          <p className="text-sm text-themeTextMuted">
+          <p className="text-sm text-[#9CA3AF]">
             {currentConfig?.start_time} - {currentConfig?.end_time} • {currentConfig?.slot_duration_minutes}m slots
           </p>
         </div>
@@ -125,19 +135,19 @@ export default function MasterGrid() {
 
       {/* Grid Container */}
       <div className="flex-1 overflow-auto relative p-4 custom-scrollbar">
-        <div className="inline-block min-w-full rounded-2xl border border-[#a8c4f0] bg-[#E8F9FF] backdrop-blur-sm overflow-hidden shadow-2xl">
+        <div className="inline-block min-w-full rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm overflow-hidden shadow-2xl">
 
-          <table className="w-full border-collapse border border-[#a8c4f0]">
+          <table className="w-full border-collapse border border-[#2E3345]">
             {/* Table Header: Branches and Semesters */}
-            <thead className="bg-[#C4D9FF] border-b border-[#a8c4f0] sticky top-0 z-20">
+            <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
               <tr>
-                <th className="border-r border-[#a8c4f0] p-3 min-w-[60px] bg-[#C4D9FF] z-30 sticky left-0 shadow-sm" rowSpan={2}>Day</th>
-                <th className="border-r border-[#a8c4f0] p-3 min-w-[120px] bg-[#C4D9FF] z-30 sticky left-[60px] shadow-sm" rowSpan={2}>Time</th>
+                <th className="border-r border-[#2E3345] p-3 min-w-[60px] bg-[#262A36] z-30 sticky left-0 shadow-sm text-[#E5E7EB]" rowSpan={2}>Day</th>
+                <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-[60px] shadow-sm text-[#E5E7EB]" rowSpan={2}>Time</th>
                 {branches.map((b: any) => {
                   const sems = semesters.filter((s: any) => s.branch_id === b.id);
                   if (sems.length === 0) return null;
                   return (
-                    <th key={b.id} colSpan={sems.length} className="border-r border-[#a8c4f0] p-3 text-center font-bold text-[#1a1a1a] uppercase tracking-widest text-sm bg-[#C4D9FF]">
+                    <th key={b.id} colSpan={sems.length} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36]">
                       {b.name}
                     </th>
                   );
@@ -147,7 +157,7 @@ export default function MasterGrid() {
                 {branches.map((b: any) => {
                   const sems = semesters.filter((s: any) => s.branch_id === b.id);
                   return sems.map((s: any) => (
-                    <th key={s.id} className="border-r border-[#a8c4f0] p-2 text-center text-sm font-semibold text-[#1a1a1a] bg-[#C4D9FF] min-w-[200px]">
+                    <th key={s.id} className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px]">
                       {s.name}
                     </th>
                   ));
@@ -174,21 +184,21 @@ export default function MasterGrid() {
                           {isFirstSlotOfDay && (
                             <td
                               rowSpan={daySlots.length}
-                              className="bg-[#C4D9FF] p-2 font-semibold text-[#3a3a5c] sticky left-0 z-20 border border-[#a8c4f0] shadow-[1px_0_0_0_#334155] w-[60px] text-center"
+                              className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-20 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
                             >
                               <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
                                 {day.toUpperCase()}
                               </div>
                             </td>
                           )}
-                          <td className="border border-[#a8c4f0] p-3 text-xs font-semibold text-[#3a3a5c] sticky left-[60px] bg-[#C4D9FF] z-20 whitespace-nowrap text-center shadow-[1px_0_0_0_#334155]">
+                          <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-20 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
                             {timeObj.display}
                           </td>
 
                           {/* If it's a Break Slot */}
                           {timeObj.type === 'break' && (
-                            <td colSpan={totalSems} className="border border-[#a8c4f0] bg-[#E8F9FF] p-2 text-center text-themeTextMuted font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
-                              <div className="absolute inset-0 flex items-center justify-center bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,'#C4D9FF'_10px,'#C4D9FF'_20px)]">
+                            <td colSpan={totalSems} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                              <div className="absolute inset-0 flex items-center justify-center">
                                 --------- BREAK ---------
                               </div>
                             </td>
@@ -223,37 +233,44 @@ export default function MasterGrid() {
                                 <td
                                   key={`${day}-${time}-${s.id}`}
                                   rowSpan={maxSpan}
-                                  className="border border-[#a8c4f0] p-2 relative min-h-[80px] cursor-pointer bg-[#E8F9FF] hover:bg-[#C4D9FF] transition-colors duration-200 align-top"
+                                  className="border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors duration-200 align-top"
                                   onClick={() => handleCellClick(day, time, s.id)}
                                 >
                                   <div className="flex flex-col gap-1 w-full h-full">
                                     {cellAllocs.length === 0 ? (
                                       <div className="w-full h-full min-h-[60px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-themeTextMuted font-bold text-xl">+</span>
+                                        <span className="text-[#9CA3AF] font-bold text-xl">+</span>
                                       </div>
                                     ) : (
                                       // Split batches horizontally logic handled by flex row if many, or col if full scale
                                       <div className={`flex gap-1 w-full h-full ${cellAllocs.length > 1 ? 'flex-row' : 'flex-col'}`}>
-                                        {cellAllocs.map((a: any) => (
+                                        {cellAllocs.map((a: any, allocIdx: number) => {
+                                          const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
+                                          return (
                                           <div
                                             key={a.id}
-                                            className="bg-[#FBFBFB] border border-themePrimary rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer"
+                                            className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
+                                            style={{
+                                              background: colorScheme.bg,
+                                              border: `1px solid ${colorScheme.border}`,
+                                            }}
                                             onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
                                           >
-                                            <div className="font-bold text-themeTextMain text-xs truncate" title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
+                                            <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
                                               {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
                                             </div>
-                                            <div className="text-themeSecondary text-xs mt-1 truncate">
+                                            <div className="text-[#67E8F9] text-xs mt-1 truncate">
                                               {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
                                             </div>
                                             <div className="flex justify-between mt-1 items-center gap-1">
-                                              <span className="text-themeTextMuted text-[10px] bg-[#E8F9FF] px-1 rounded truncate max-w-[50%]">
+                                              <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
                                                 {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
                                               </span>
-                                              {a.batches && a.batches.length > 0 && <span className="text-blue-300 text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
+                                              {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
                                             </div>
                                           </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>
@@ -402,27 +419,27 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#E8F9FF] p-6 md:p-8 rounded-3xl w-full max-w-xl border border-themePrimary shadow-[0_0_50px_rgba(0,0,0,0.5)] transform transition-all scale-100 max-h-[90vh] flex flex-col">
+      <div className="bg-[#1C1F2A] p-6 md:p-8 rounded-3xl w-full max-w-xl border border-[#2E3345] shadow-[0_0_50px_rgba(0,0,0,0.5)] transform transition-all scale-100 max-h-[90vh] flex flex-col">
 
         {/* Header Section */}
-        <div className="flex justify-between items-start mb-4 border-b border-[#a8c4f0] pb-4 shrink-0">
+        <div className="flex justify-between items-start mb-4 border-b border-[#2E3345] pb-4 shrink-0">
           <div>
-            <h2 className="text-2xl font-bold mb-1 text-black">{isEditing ? 'Edit Allocation' : 'Allocate Slot'}</h2>
-            <p className="text-themeTextMuted text-sm font-medium">{cell.day} @ {cell.time.slice(0, 5)} (Semester ID: {cell.semId})</p>
+            <h2 className="text-2xl font-bold mb-1 text-[#E5E7EB]">{isEditing ? 'Edit Allocation' : 'Allocate Slot'}</h2>
+            <p className="text-[#9CA3AF] text-sm font-medium">{cell.day} @ {cell.time.slice(0, 5)} (Semester ID: {cell.semId})</p>
           </div>
         </div>
 
-        {errorMsg && <div className="bg-red-900/40 border border-red-500/50 text-red-200 p-3 rounded-lg mb-4 text-sm font-semibold shrink-0 shadow-sm">{errorMsg}</div>}
+        {errorMsg && <div className="bg-red-900/40 border border-red-500/50 text-red-300 p-3 rounded-lg mb-4 text-sm font-semibold shrink-0 shadow-sm">{errorMsg}</div>}
 
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-hidden h-full">
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
 
-            <div className="bg-[#E8F9FF] p-5 rounded-2xl border border-[#a8c4f0] relative group transition hover:border-themePrimary">
+            <div className="bg-[#262A36] p-5 rounded-2xl border border-[#2E3345] relative group transition hover:border-[#C4B5FD]/30">
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Subject</label>
-                  <select required className="w-full bg-white border border-[#a8c4f0] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
+                  <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Subject</label>
+                  <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                     value={allocationData.subject_id} onChange={(e) => handleChange('subject_id', e.target.value)}>
                     <option value="">Select subject...</option>
                     {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.weekly_hours}h/w)</option>)}
@@ -431,8 +448,8 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Faculty</label>
-                    <select required className="w-full bg-white border border-[#a8c4f0] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
+                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Faculty</label>
+                    <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.faculty_id} onChange={(e) => handleChange('faculty_id', e.target.value)}>
                       <option value="">Select faculty...</option>
                       {faculties.map((f: any) => {
@@ -450,8 +467,8 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
                     </select>
                   </div>
                   <div>
-                    <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Room</label>
-                    <select required className="w-full bg-white border border-[#a8c4f0] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
+                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Room</label>
+                    <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.room_id} onChange={(e) => handleChange('room_id', e.target.value)}>
                       <option value="">Select room...</option>
                       {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>)}
@@ -461,13 +478,13 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Duration (mins)</label>
-                    <input type="number" required className="w-full bg-white border border-[#a8c4f0] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
+                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Duration (mins)</label>
+                    <input type="number" required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.duration_minutes} onChange={(e) => handleChange('duration_minutes', parseInt(e.target.value))} />
                   </div>
                   <div>
-                    <label className="block text-themeTextMuted text-[11px] font-bold uppercase tracking-wider mb-1.5">Batches (Comma separated)</label>
-                    <input type="text" placeholder="e.g. A, B, C" className="w-full bg-white border border-[#a8c4f0] rounded-lg p-2.5 text-[#1a1a1a] text-sm transition shadow-sm"
+                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Batches (Comma separated)</label>
+                    <input type="text" placeholder="e.g. A, B, C" className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.batches_input} onChange={(e) => handleChange('batches_input', e.target.value)} />
                   </div>
                 </div>
@@ -475,8 +492,8 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-[#a8c4f0] shrink-0 mt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#C4D9FF] hover:bg-[#a8c4f0] rounded-xl font-bold transition text-[#3a3a5c] shadow-sm">Cancel</button>
+          <div className="flex gap-4 pt-4 border-t border-[#2E3345] shrink-0 mt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-[#262A36] hover:bg-[#2E3345] rounded-xl font-bold transition text-[#9CA3AF] shadow-sm">Cancel</button>
             {isEditing && (
               <button type="button" onClick={handleDelete} disabled={loading} className="flex-1 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 rounded-xl font-bold transition text-red-400 shadow-sm disabled:opacity-50">Delete Allocation</button>
             )}

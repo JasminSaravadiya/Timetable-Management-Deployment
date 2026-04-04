@@ -179,12 +179,15 @@ export default function Dashboard() {
     input.click();
   };
 
+  /* Timetable card accent colors */
+  const CARD_ACCENTS = ['#C4B5FD', '#A3E635', '#67E8F9', '#FDE68A', '#F9A8D4', '#6EE7B7'];
+
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: '#FBFBFB',
-        color: '#1a1a1a',
+        background: '#0D0F14',
+        color: '#E5E7EB',
         display: 'flex',
         fontFamily: "'Inter', sans-serif",
         position: 'relative',
@@ -200,7 +203,7 @@ export default function Dashboard() {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(197,186,255,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(196,181,253,0.08) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
@@ -213,7 +216,7 @@ export default function Dashboard() {
           width: 500,
           height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(142,151,125,0.10) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(103,232,249,0.06) 0%, transparent 70%)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
@@ -229,8 +232,8 @@ export default function Dashboard() {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 20,
-          borderRight: '1px solid #a8c4f0',
-          background: '#E8F9FF',
+          borderRight: '1px solid #2E3345',
+          background: '#1C1F2A',
           backdropFilter: 'blur(12px)',
           zIndex: 1,
         }}
@@ -242,13 +245,13 @@ export default function Dashboard() {
               width: 56,
               height: 56,
               borderRadius: 16,
-              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
+              background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 28,
               margin: '0 auto 12px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 12px rgba(196,181,253,0.3)',
               animation: 'float 4s ease-in-out infinite',
             }}
           >
@@ -258,7 +261,7 @@ export default function Dashboard() {
             style={{
               fontSize: 15,
               fontWeight: 800,
-              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
+              background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-0.02em',
@@ -280,8 +283,8 @@ export default function Dashboard() {
             padding: '16px 0',
             border: 'none',
             borderRadius: 14,
-            background: 'linear-gradient(#C5BAFF, #b0a3f0)',
-            color: '#ffffffff',
+            background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
+            color: '#0D0F14',
             fontWeight: 700,
             fontSize: 15,
             cursor: 'pointer',
@@ -289,59 +292,24 @@ export default function Dashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            boxShadow: '0 6px 12px rgba(197,186,255,0.35)',
+            boxShadow: '0 6px 20px rgba(196,181,253,0.25)',
             transition: 'all 0.2s ease',
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-            (e.target as HTMLElement).style.boxShadow = '0 4px 12px #C5BAFF';
+            (e.target as HTMLElement).style.boxShadow = '0 8px 28px rgba(196,181,253,0.4)';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(0)';
-            (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(197,186,255,0.35)';
+            (e.target as HTMLElement).style.boxShadow = '0 6px 20px rgba(196,181,253,0.25)';
           }}
         >
           <span style={{ fontSize: 20 }}>✨</span> New Timetable
         </button>
 
-        {/* Load Button */}
-        {/* <button
-          id="btn-load"
-          onClick={handleLoadFile}
-          style={{
-            width: '100%',
-            padding: '16px 0',
-            border: '1px solid #C4D9FF',
-            borderRadius: 14,
-            background: '#E8F9FF',
-            color: '#C5BAFF',
-            fontWeight: 600,
-            fontSize: 15,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            transition: 'all 0.2s ease',
-            fontFamily: "'Inter', sans-serif",
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = '#C4D9FF';
-            (e.target as HTMLElement).style.borderColor = '#C5BAFF';
-            (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.background = '#C4D9FF';
-            (e.target as HTMLElement).style.borderColor = '#C4D9FF';
-            (e.target as HTMLElement).style.transform = 'translateY(0)';
-          }}
-        >
-          <span style={{ fontSize: 20 }}>📂</span> Load File
-        </button> */}
-
         {/* Subtle divider and hint */}
-        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.35, fontSize: 11, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.35, fontSize: 11, lineHeight: 1.5, color: '#9CA3AF' }}>
           Load opens file explorer<br />to find a saved <code>.json</code> file
         </div>
       </aside>
@@ -364,7 +332,7 @@ export default function Dashboard() {
               fontSize: 32,
               fontWeight: 800,
               letterSpacing: '-0.03em',
-              background: 'linear-gradient(#C5BAFF, #b0a3f0)',
+              background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               margin: 0,
@@ -372,7 +340,7 @@ export default function Dashboard() {
           >
             Recent Saved Timetables
           </h2>
-          <p style={{ color: '#3a3a5c', marginTop: 8, fontSize: 14 }}>
+          <p style={{ color: '#9CA3AF', marginTop: 8, fontSize: 14 }}>
             Pick up where you left off, or start something new.
           </p>
         </div>
@@ -397,7 +365,7 @@ export default function Dashboard() {
                 justifyContent: 'center',
               }}
             >
-              <p style={{ color: '#3a3a5c', fontSize: 14 }}>Loading timetables...</p>
+              <p style={{ color: '#9CA3AF', fontSize: 14 }}>Loading timetables...</p>
             </div>
           ) : allConfigs.length === 0 ? (
             <div
@@ -416,8 +384,8 @@ export default function Dashboard() {
                   width: 80,
                   height: 80,
                   borderRadius: 20,
-                  background: '#E8F9FF',
-                  border: '1px solid rgba(197,186,255,0.15)',
+                  background: '#1C1F2A',
+                  border: '1px solid #2E3345',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -426,11 +394,11 @@ export default function Dashboard() {
               >
                 📋
               </div>
-              <p style={{ color: '#3a3a5c', fontSize: 16, fontWeight: 500 }}>
+              <p style={{ color: '#9CA3AF', fontSize: 16, fontWeight: 500 }}>
                 No timetables yet
               </p>
-              <p style={{ color: '#3a3a5c', fontSize: 13 }}>
-                Click <strong style={{ color: '#C5BAFF' }}>"New Timetable"</strong> to get started
+              <p style={{ color: '#9CA3AF', fontSize: 13 }}>
+                Click <strong style={{ color: '#C4B5FD' }}>"New Timetable"</strong> to get started
               </p>
             </div>
           ) : (
@@ -441,8 +409,9 @@ export default function Dashboard() {
                 style={{
                   padding: '20px 24px',
                   borderRadius: 16,
-                  background: '#E8F9FF',
-                  border: '1px solid #C4D9FF',
+                  background: '#1C1F2A',
+                  border: '1px solid #2E3345',
+                  borderLeft: `3px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}`,
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -451,13 +420,13 @@ export default function Dashboard() {
                   animation: `fadeInUp 0.4s ease ${i * 0.08}s both`,
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#C4D9FF';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#C4D9FF';
+                  (e.currentTarget as HTMLElement).style.background = '#262A36';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#3E4455';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#E8F9FF';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#C4D9FF';
+                  (e.currentTarget as HTMLElement).style.background = '#1C1F2A';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#2E3345';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
                 }}
               >
@@ -467,8 +436,8 @@ export default function Dashboard() {
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background: `linear-gradient(135deg, ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}22, ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}11)`,
-                      border: `1px solid ${['#C5BAFF', '#C4D9FF', '#C4D9FF', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]}33`,
+                      background: `${CARD_ACCENTS[i % CARD_ACCENTS.length]}15`,
+                      border: `1px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}30`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -483,21 +452,21 @@ export default function Dashboard() {
                       style={{
                         fontSize: 16,
                         fontWeight: 700,
-                        color: '#1a1a1a',
+                        color: '#E5E7EB',
                         margin: 0,
                         letterSpacing: '-0.01em',
                       }}
                     >
                       {c.name || 'Untitled Timetable'}
                     </h3>
-                    <p style={{ fontSize: 12, color: '#3a3a5c', margin: '4px 0 0' }}>
+                    <p style={{ fontSize: 12, color: '#9CA3AF', margin: '4px 0 0' }}>
                       {formatTime12(c.start_time)} – {formatTime12(c.end_time)} &nbsp;|&nbsp; {c.slot_duration_minutes}min slots
                     </p>
                   </div>
                 </div>
                 <span
                   style={{
-                    color: '#C5BAFF',
+                    color: '#C4B5FD',
                     fontWeight: 600,
                     fontSize: 14,
                     display: 'flex',
@@ -519,7 +488,7 @@ export default function Dashboard() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(43,43,43,0.5)',
+            background: 'rgba(0,0,0,0.7)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -532,8 +501,8 @@ export default function Dashboard() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#E8F9FF',
-              border: '1px solid #C4D9FF',
+              background: '#1C1F2A',
+              border: '1px solid #2E3345',
               borderRadius: 24,
               width: '90%',
               maxWidth: 820,
@@ -541,7 +510,7 @@ export default function Dashboard() {
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px #C4D9FF',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px #2E3345',
               animation: 'slideUp 0.35s ease',
             }}
           >
@@ -549,7 +518,7 @@ export default function Dashboard() {
             <div
               style={{
                 padding: '24px 32px',
-                borderBottom: '1px solid #C4D9FF',
+                borderBottom: '1px solid #2E3345',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -560,7 +529,7 @@ export default function Dashboard() {
                   margin: 0,
                   fontSize: 22,
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #e0e7ff, #C5BAFF)',
+                  background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   letterSpacing: '-0.02em',
@@ -575,9 +544,9 @@ export default function Dashboard() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  border: '1px solid #C4D9FF',
-                  background: '#E8F9FF',
-                  color: '#3a3a5c',
+                  border: '1px solid #2E3345',
+                  background: '#262A36',
+                  color: '#9CA3AF',
                   fontSize: 18,
                   cursor: 'pointer',
                   display: 'flex',
@@ -592,9 +561,9 @@ export default function Dashboard() {
                   (e.target as HTMLElement).style.color = '#f87171';
                 }}
                 onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.background = '#C4D9FF';
-                  (e.target as HTMLElement).style.borderColor = '#C4D9FF';
-                  (e.target as HTMLElement).style.color = '#5A5A5A';
+                  (e.target as HTMLElement).style.background = '#262A36';
+                  (e.target as HTMLElement).style.borderColor = '#2E3345';
+                  (e.target as HTMLElement).style.color = '#9CA3AF';
                 }}
               >
                 ✕
@@ -632,11 +601,11 @@ export default function Dashboard() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     style={inputStyle}
                     onFocus={(e) => {
-                      (e.target as HTMLElement).style.borderColor = '#C5BAFF';
-                      (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(197,186,255,0.1)';
+                      (e.target as HTMLElement).style.borderColor = '#C4B5FD';
+                      (e.target as HTMLElement).style.boxShadow = '0 0 0 3px rgba(196,181,253,0.1)';
                     }}
                     onBlur={(e) => {
-                      (e.target as HTMLElement).style.borderColor = '#C4D9FF';
+                      (e.target as HTMLElement).style.borderColor = '#2E3345';
                       (e.target as HTMLElement).style.boxShadow = 'none';
                     }}
                   />
@@ -687,7 +656,7 @@ export default function Dashboard() {
                         right: 14,
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        color: '#3a3a5c',
+                        color: '#9CA3AF',
                         fontSize: 12,
                         fontWeight: 600,
                         pointerEvents: 'none',
@@ -703,18 +672,18 @@ export default function Dashboard() {
                   style={{
                     padding: 16,
                     borderRadius: 14,
-                    background: '#E8F9FF',
-                    border: '1px solid #C4D9FF',
+                    background: '#262A36',
+                    border: '1px solid #2E3345',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ ...labelStyle, color: '#C5BAFF', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      ☕ Break Times <span style={{ color: '#3a3a5c', fontWeight: 400, fontSize: 11 }}>(optional)</span>
+                    <label style={{ ...labelStyle, color: '#FDE68A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      ☕ Break Times <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: 11 }}>(optional)</span>
                     </label>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, breaks: [...formData.breaks, { id: Date.now(), start_time: '14:00', duration_minutes: 15 }] })}
-                      style={{ background: 'rgba(197,186,255,0.15)', color: '#C5BAFF', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      style={{ background: 'rgba(196,181,253,0.12)', color: '#C4B5FD', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                     >
                       + Add Break
                     </button>
@@ -732,10 +701,10 @@ export default function Dashboard() {
                               newBreaks[index].start_time = e.target.value;
                               setFormData({ ...formData, breaks: newBreaks });
                             }}
-                            style={{ ...inputStyle, background: '#FFFFFF' }}
+                            style={{ ...inputStyle, background: '#1C1F2A' }}
                           />
                         </div>
-                        <span style={{ color: '#3a3a5c', fontSize: 13, fontWeight: 600 }}>for</span>
+                        <span style={{ color: '#9CA3AF', fontSize: 13, fontWeight: 600 }}>for</span>
                         <div style={{ position: 'relative', width: 100 }}>
                           <select
                             value={brk.duration_minutes}
@@ -744,7 +713,7 @@ export default function Dashboard() {
                               newBreaks[index].duration_minutes = parseInt(e.target.value);
                               setFormData({ ...formData, breaks: newBreaks });
                             }}
-                            style={{ ...inputStyle, background: '#FFFFFF', paddingRight: 10, appearance: 'none', MozAppearance: 'none', WebkitAppearance: 'none' }}
+                            style={{ ...inputStyle, background: '#1C1F2A', paddingRight: 10, appearance: 'none', MozAppearance: 'none', WebkitAppearance: 'none' }}
                           >
                             <option value={15}>15 mins</option>
                             <option value={30}>30 mins</option>
@@ -767,7 +736,7 @@ export default function Dashboard() {
                       </div>
                     ))}
                     {formData.breaks.length === 0 && (
-                      <div style={{ color: '#3a3a5c', fontSize: 13, fontStyle: 'italic', padding: '10px 0' }}>No breaks configured</div>
+                      <div style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', padding: '10px 0' }}>No breaks configured</div>
                     )}
                   </div>
                 </div>
@@ -781,23 +750,23 @@ export default function Dashboard() {
                     padding: '14px 0',
                     border: 'none',
                     borderRadius: 14,
-                    background: 'linear-gradient(#C5BAFF, #b0a3f0)',
-                    color: '#1a1a1a',
+                    background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
+                    color: '#0D0F14',
                     fontWeight: 700,
                     fontSize: 15,
                     cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(197,186,255,0.35)',
+                    boxShadow: '0 6px 24px rgba(196,181,253,0.25)',
                     transition: 'all 0.2s ease',
                     fontFamily: "'Inter', sans-serif",
                     letterSpacing: '-0.01em',
                   }}
                   onMouseEnter={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.target as HTMLElement).style.boxShadow = '0 10px 32px #C5BAFF';
+                    (e.target as HTMLElement).style.boxShadow = '0 10px 32px rgba(196,181,253,0.4)';
                   }}
                   onMouseLeave={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(0)';
-                    (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(197,186,255,0.35)';
+                    (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(196,181,253,0.25)';
                   }}
                 >
                   Next →
@@ -808,8 +777,8 @@ export default function Dashboard() {
               <div
                 style={{
                   width: 300,
-                  borderLeft: '1px solid #C4D9FF',
-                  background: '#FBFBFB',
+                  borderLeft: '1px solid #2E3345',
+                  background: '#0D0F14',
                   padding: '24px 20px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -820,7 +789,7 @@ export default function Dashboard() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: '#3a3a5c',
+                    color: '#9CA3AF',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                     marginTop: 0,
@@ -835,7 +804,7 @@ export default function Dashboard() {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: '#C4D9FF',
+                      background: '#A3E635',
                       display: 'inline-block',
                       animation: 'pulse-glow 2s infinite',
                     }}
@@ -845,7 +814,7 @@ export default function Dashboard() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {slots.length === 0 ? (
-                    <p style={{ color: '#3a3a5c', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+                    <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
                       Adjust settings to see slots
                     </p>
                   ) : (
@@ -867,11 +836,11 @@ export default function Dashboard() {
                           animation: `fadeInUp 0.3s ease ${idx * 0.03}s both`,
                         }}
                       >
-                        <span style={{ color: slot.isBreak ? '#C5BAFF' : '#2B2B2B' }}>
+                        <span style={{ color: slot.isBreak ? '#FDE68A' : '#E5E7EB' }}>
                           {formatTime12(slot.start)}
                         </span>
-                        <span style={{ color: '#3a3a5c', fontSize: 11 }}>→</span>
-                        <span style={{ color: slot.isBreak ? '#C5BAFF' : '#2B2B2B' }}>
+                        <span style={{ color: '#9CA3AF', fontSize: 11 }}>→</span>
+                        <span style={{ color: slot.isBreak ? '#FDE68A' : '#E5E7EB' }}>
                           {formatTime12(slot.end)}
                         </span>
                         {slot.isBreak && (
@@ -887,13 +856,13 @@ export default function Dashboard() {
                     style={{
                       marginTop: 'auto',
                       paddingTop: 16,
-                      borderTop: '1px solid #C4D9FF',
+                      borderTop: '1px solid #2E3345',
                       fontSize: 12,
-                      color: '#3a3a5c',
+                      color: '#9CA3AF',
                       textAlign: 'center',
                     }}
                   >
-                    <strong style={{ color: '#a5b4fc' }}>{slots.length}</strong> slots generated
+                    <strong style={{ color: '#C4B5FD' }}>{slots.length}</strong> slots generated
                   </div>
                 )}
               </div>
@@ -910,7 +879,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
   fontWeight: 600,
-  color: '#3a3a5c',
+  color: '#9CA3AF',
   marginBottom: 8,
   letterSpacing: '0.02em',
 };
@@ -919,9 +888,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: 8,
-  border: '1px solid #a8c4f0',
-  background: '#FFFFFF',
-  color: '#1a1a1a',
+  border: '1px solid #2E3345',
+  background: '#242838',
+  color: '#E5E7EB',
   fontSize: 14,
   fontWeight: 500,
   outline: 'none',
