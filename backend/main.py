@@ -86,6 +86,39 @@ async def read_configs(db: AsyncSession = Depends(get_db)):
     _cache_set("configs", data)
     return data
 
+@app.delete("/api/config/{config_id}")
+async def delete_config(config_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a timetable config and ALL related data (cascade)."""
+    result = await db.execute(select(models.TimetableConfig).filter(models.TimetableConfig.id == config_id))
+    config = result.scalars().first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    # 1. Find all semester IDs for this config (needed for mapping tables)
+    sems_result = await db.execute(select(models.Semester).filter(models.Semester.config_id == config_id))
+    sem_ids = [s.id for s in sems_result.scalars().all()]
+
+    # 2. Delete allocations
+    await db.execute(sa_delete(models.Allocation).where(models.Allocation.config_id == config_id))
+
+    # 3. Delete semester-faculty and semester-room mappings
+    if sem_ids:
+        await db.execute(sa_delete(models.SemesterFacultyMap).where(models.SemesterFacultyMap.semester_id.in_(sem_ids)))
+        await db.execute(sa_delete(models.SemesterRoomMap).where(models.SemesterRoomMap.semester_id.in_(sem_ids)))
+
+    # 4. Delete subjects, semesters, branches, faculties, rooms
+    await db.execute(sa_delete(models.Subject).where(models.Subject.config_id == config_id))
+    await db.execute(sa_delete(models.Semester).where(models.Semester.config_id == config_id))
+    await db.execute(sa_delete(models.Branch).where(models.Branch.config_id == config_id))
+    await db.execute(sa_delete(models.Faculty).where(models.Faculty.config_id == config_id))
+    await db.execute(sa_delete(models.Room).where(models.Room.config_id == config_id))
+
+    # 5. Delete the config itself
+    await db.delete(config)
+    await db.commit()
+    _cache_invalidate()
+    return {"status": "deleted"}
+
 # ═══════════════════════════════════
 #  BRANCH  (full CRUD)
 # ═══════════════════════════════════

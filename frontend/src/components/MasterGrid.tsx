@@ -116,9 +116,9 @@ export default function MasterGrid() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0D0F14] text-themeTextMain overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#0D0F14] text-themeTextMain" style={{ minWidth: 0, overflow: 'hidden' }}>
       {/* Header Bar */}
-      <div className="bg-[#1C1F2A] p-4 border-b border-[#2E3345] flex justify-between items-center shadow-lg z-10">
+      <div className="bg-[#1C1F2A] p-4 border-b border-[#2E3345] flex justify-between items-center shadow-lg z-10" style={{ flexShrink: 0 }}>
         <div>
           <h1 className="text-2xl font-bold text-[#E5E7EB] tracking-wide">
             {currentConfig?.name}
@@ -133,11 +133,18 @@ export default function MasterGrid() {
         </div>
       </div>
 
-      {/* Grid Container */}
-      <div className="flex-1 overflow-auto relative p-4 custom-scrollbar">
-        <div className="inline-block min-w-full rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm overflow-hidden shadow-2xl">
+      {/* Scroll Container — this div provides BOTH horizontal and vertical scroll bars */}
+      <div
+        className="flex-1 relative p-4 custom-scrollbar"
+        style={{ overflow: 'auto', minWidth: 0, minHeight: 0 }}
+      >
+        {/* Table Wrapper — inline-block + min-width:max-content lets the table expand beyond viewport */}
+        <div
+          className="rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm shadow-2xl"
+          style={{ display: 'inline-block', minWidth: '100%' }}
+        >
 
-          <table className="w-full border-collapse border border-[#2E3345]">
+          <table className="border-collapse border border-[#2E3345]" style={{ width: 'max-content', minWidth: '100%' }}>
             {/* Table Header: Branches and Semesters */}
             <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
               <tr>

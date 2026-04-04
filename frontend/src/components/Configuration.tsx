@@ -101,6 +101,10 @@ export default function Configuration() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Navigation-after-save state (for when user clicks Next while saving)
+  const [pendingNavigate, setPendingNavigate] = useState(false);
+  const isSaving = saveStatus === 'saving';
+
   const showSaving = () => setSaveStatus('saving');
   const showSaved = () => {
     setSaveStatus('saved');
@@ -112,6 +116,14 @@ export default function Configuration() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
   };
+
+  // Auto-navigate to /grid once a pending save completes
+  useEffect(() => {
+    if (!isSaving && pendingNavigate) {
+      setPendingNavigate(false);
+      navigate('/grid');
+    }
+  }, [isSaving, pendingNavigate]);
 
   // Temp ID counter for optimistic inserts (negative to avoid collisions with DB IDs)
   const tempIdCounter = React.useRef(-1);
@@ -483,10 +495,63 @@ export default function Configuration() {
             )}
           </div>
 
-          {/* Next button */}
-          <div style={{ padding: '16px', borderTop: '1px solid #2E3345' }}>
-            <button onClick={() => navigate('/grid')} className="btn-primary" style={{ width: '100%', padding: '12px 0', borderRadius: 12 }}>
-              Next →
+          {/* Back button + Next button */}
+          <div style={{ padding: '16px', borderTop: '1px solid #2E3345', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Back to Home */}
+            <button
+              id="btn-back-home"
+              onClick={() => navigate('/')}
+              style={{
+                width: '100%',
+                padding: '9px 0',
+                borderRadius: 10,
+                border: '1px solid #2E3345',
+                background: '#262A36',
+                color: '#9CA3AF',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+                fontFamily: "'Inter', sans-serif",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = '#2E3345';
+                (e.currentTarget as HTMLElement).style.color = '#E5E7EB';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = '#262A36';
+                (e.currentTarget as HTMLElement).style.color = '#9CA3AF';
+              }}
+            >
+              ← Back to Home
+            </button>
+
+            {/* Next — handles save-in-progress */}
+            <button
+              id="btn-next-grid"
+              onClick={() => {
+                if (isSaving) {
+                  setPendingNavigate(true); // will auto-navigate after save
+                } else {
+                  navigate('/grid');
+                }
+              }}
+              disabled={pendingNavigate}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                padding: '12px 0',
+                borderRadius: 12,
+                position: 'relative',
+                opacity: pendingNavigate ? 0.8 : 1,
+                cursor: pendingNavigate ? 'wait' : 'pointer',
+              }}
+            >
+              {isSaving && !pendingNavigate ? '⏳ Saving...' : pendingNavigate ? '⏳ Waiting...' : 'Next →'}
             </button>
           </div>
         </div>

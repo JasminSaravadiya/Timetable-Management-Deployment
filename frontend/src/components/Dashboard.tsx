@@ -160,6 +160,25 @@ export default function Dashboard() {
     navigate('/configure');
   };
 
+  const handleDeleteTimetable = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); // prevent card click from firing
+    if (!window.confirm('Are you sure you want to delete this timetable and ALL its data? This cannot be undone.')) return;
+    try {
+      await axios.delete(`${API_URL}/config/${id}`);
+      invalidateCache();
+      setAllConfigs(prev => prev.filter(c => c.id !== id));
+    } catch (err: any) {
+      console.error('[Delete timetable error]', err);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || err.message || 'Unknown error';
+      if (status === 404) {
+        alert(`Delete failed (404): The timetable was not found. It may have already been deleted, or the backend needs to be restarted to load the new delete endpoint.\n\nDetail: ${detail}`);
+      } else {
+        alert(`Failed to delete timetable (HTTP ${status ?? 'no response'}): ${detail}`);
+      }
+    }
+  };
+
   const handleLoadFile = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -418,6 +437,7 @@ export default function Dashboard() {
                   alignItems: 'center',
                   transition: 'all 0.25s ease',
                   animation: `fadeInUp 0.4s ease ${i * 0.08}s both`,
+                  position: 'relative',
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = '#262A36';
@@ -464,18 +484,51 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <span
-                  style={{
-                    color: '#C4B5FD',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  Open <span style={{ fontSize: 18 }}>→</span>
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Delete button */}
+                  <button
+                    id={`btn-delete-${c.id}`}
+                    onClick={(e) => handleDeleteTimetable(e, c.id!)}
+                    title="Delete timetable"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      border: '1px solid rgba(239,68,68,0.25)',
+                      background: 'rgba(239,68,68,0.08)',
+                      color: '#f87171',
+                      fontSize: 15,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.2)';
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.08)';
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.25)';
+                    }}
+                  >
+                    🗑
+                  </button>
+                  <span
+                    style={{
+                      color: '#C4B5FD',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    Open <span style={{ fontSize: 18 }}>→</span>
+                  </span>
+                </div>
               </div>
             ))
           )}
@@ -777,12 +830,14 @@ export default function Dashboard() {
               <div
                 style={{
                   width: 300,
+                  minWidth: 300,
                   borderLeft: '1px solid #2E3345',
                   background: '#0D0F14',
                   padding: '24px 20px',
                   display: 'flex',
                   flexDirection: 'column',
                   overflowY: 'auto',
+                  overflowX: 'auto',
                 }}
               >
                 <h3
@@ -797,6 +852,7 @@ export default function Dashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span
@@ -812,7 +868,7 @@ export default function Dashboard() {
                   Live Slot Preview
                 </h3>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 220 }}>
                   {slots.length === 0 ? (
                     <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
                       Adjust settings to see slots
@@ -834,17 +890,19 @@ export default function Dashboard() {
                           fontWeight: 600,
                           fontFamily: "'Inter', monospace",
                           animation: `fadeInUp 0.3s ease ${idx * 0.03}s both`,
+                          whiteSpace: 'nowrap',
+                          minWidth: 200,
                         }}
                       >
                         <span style={{ color: slot.isBreak ? '#FDE68A' : '#E5E7EB' }}>
                           {formatTime12(slot.start)}
                         </span>
-                        <span style={{ color: '#9CA3AF', fontSize: 11 }}>→</span>
+                        <span style={{ color: '#9CA3AF', fontSize: 11, margin: '0 8px' }}>→</span>
                         <span style={{ color: slot.isBreak ? '#FDE68A' : '#E5E7EB' }}>
                           {formatTime12(slot.end)}
                         </span>
                         {slot.isBreak && (
-                          <span style={{ fontSize: 11, marginLeft: 4 }}>☕</span>
+                          <span style={{ fontSize: 11, marginLeft: 8 }}>☕</span>
                         )}
                       </div>
                     ))

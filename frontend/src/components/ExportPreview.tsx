@@ -133,7 +133,7 @@ export default function ExportPreview() {
       </div>
 
       {/* Main Preview Area */}
-      <div className="flex-1 p-8 overflow-hidden flex flex-col">
+      <div className="flex-1 p-8 overflow-auto flex flex-col" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-themeTextMain">
             Preview Data Grid
