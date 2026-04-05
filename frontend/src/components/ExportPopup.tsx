@@ -4,6 +4,7 @@ import axios from 'axios';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
 import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations } from '../apiCache';
+import { useLoading } from '../contexts/LoadingContext';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface ExportPopupProps {
@@ -12,6 +13,7 @@ interface ExportPopupProps {
 
 export default function ExportPopup({ onClose }: ExportPopupProps) {
   const { currentConfig } = useStore();
+  const { withLoading } = useLoading();
 
   const [branches, setBranches] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
@@ -26,16 +28,18 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
   useEffect(() => {
     if (!currentConfig?.id) return;
     const load = async () => {
-      const [data, allocs] = await Promise.all([
-        fetchConfigData(currentConfig.id!),
-        fetchAllocations(currentConfig.id!),
-      ]);
-      setBranches(data.branches);
-      setSemesters(data.semesters);
-      setFaculties(data.faculties);
-      setRooms(data.rooms);
-      setSubjects(data.subjects);
-      setAllocations(allocs);
+      await withLoading(async () => {
+        const [data, allocs] = await Promise.all([
+          fetchConfigData(currentConfig.id!),
+          fetchAllocations(currentConfig.id!),
+        ]);
+        setBranches(data.branches);
+        setSemesters(data.semesters);
+        setFaculties(data.faculties);
+        setRooms(data.rooms);
+        setSubjects(data.subjects);
+        setAllocations(allocs);
+      }, 'Loading export data...');
     };
     load();
   }, [currentConfig]);
@@ -131,33 +135,35 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
   // --- EXPORT via backend ---
   const downloadExcel = async (exportMode: string, exportValue?: string) => {
     try {
-      const params = new URLSearchParams({ config_id: String(currentConfig?.id), mode: exportMode });
-      if (exportValue) params.set('value', exportValue);
+      await withLoading(async () => {
+        const params = new URLSearchParams({ config_id: String(currentConfig?.id), mode: exportMode });
+        if (exportValue) params.set('value', exportValue);
 
-      const response = await axios.get(`${API_URL}/export_excel?${params.toString()}`, { responseType: 'blob' });
+        const response = await axios.get(`${API_URL}/export_excel?${params.toString()}`, { responseType: 'blob' });
 
-      // Extract filename from Content-Disposition header
-      let filename = 'Timetable.xlsx';
-      const disposition = response.headers['content-disposition'];
+        // Extract filename from Content-Disposition header
+        let filename = 'Timetable.xlsx';
+        const disposition = response.headers['content-disposition'];
 
-      if (disposition && disposition.indexOf('attachment') !== -1) {
-        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        const matches = filenameRegex.exec(disposition);
-        if (matches != null && matches[1]) {
-          filename = matches[1].replace(/['"]/g, '');
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = filenameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
         }
-      }
 
-      // Create blob download
-      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+        // Create blob download
+        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 'Generating Excel file...');
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Export failed');
     }

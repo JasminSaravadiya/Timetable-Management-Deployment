@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { API_URL } from '../config';
+import { useLoading } from '../contexts/LoadingContext';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function ExportPreview() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
+  const { withLoading } = useLoading();
 
   const [allocations, setAllocations] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -25,22 +27,24 @@ export default function ExportPreview() {
   }, []);
 
   const fetchData = async () => {
-    const [alloc, b, s, sub, fac, rm] = await Promise.all([
-      axios.get(`${API_URL}/allocations`),
-      axios.get(`${API_URL}/branches`),
-      axios.get(`${API_URL}/semesters`),
-      axios.get(`${API_URL}/subjects`),
-      axios.get(`${API_URL}/faculties`),
-      axios.get(`${API_URL}/rooms`)
-    ]);
-    if (currentConfig) {
-      setAllocations(alloc.data.filter((a: any) => a.config_id === currentConfig.id));
-    }
-    setBranches(b.data);
-    setSemesters(s.data);
-    setSubjects(sub.data);
-    setFaculties(fac.data);
-    setRooms(rm.data);
+    await withLoading(async () => {
+      const [alloc, b, s, sub, fac, rm] = await Promise.all([
+        axios.get(`${API_URL}/allocations`),
+        axios.get(`${API_URL}/branches`),
+        axios.get(`${API_URL}/semesters`),
+        axios.get(`${API_URL}/subjects`),
+        axios.get(`${API_URL}/faculties`),
+        axios.get(`${API_URL}/rooms`)
+      ]);
+      if (currentConfig) {
+        setAllocations(alloc.data.filter((a: any) => a.config_id === currentConfig.id));
+      }
+      setBranches(b.data);
+      setSemesters(s.data);
+      setSubjects(sub.data);
+      setFaculties(fac.data);
+      setRooms(rm.data);
+    }, 'Loading preview data...');
   };
 
   const getFilteredData = () => {

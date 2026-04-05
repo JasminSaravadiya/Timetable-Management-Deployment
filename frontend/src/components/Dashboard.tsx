@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import { invalidateCache } from '../apiCache';
+import { useLoading } from '../contexts/LoadingContext';
 
 /* ────────────────── helpers ────────────────── */
 function formatTime12(t: string): string {
@@ -94,6 +95,7 @@ const SLOT_COLORS = [
 export default function Dashboard() {
   const { setConfig } = useStore();
   const navigate = useNavigate();
+  const { withLoading } = useLoading();
   const [showModal, setShowModal] = useState(false);
   const [allConfigs, setAllConfigs] = useState<Config[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,11 +142,13 @@ export default function Dashboard() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/config`, formData);
-      setConfig(res.data);
-      invalidateCache();
-      await fetchConfigs(); // Refetch from DB so all users see it
-      navigate('/configure');
+      await withLoading(async () => {
+        const res = await axios.post(`${API_URL}/config`, formData);
+        setConfig(res.data);
+        invalidateCache();
+        await fetchConfigs();
+        navigate('/configure');
+      }, 'Creating timetable...');
     } catch (error: any) {
       console.error(error);
       if (!error.response) {
@@ -164,9 +168,11 @@ export default function Dashboard() {
     e.stopPropagation(); // prevent card click from firing
     if (!window.confirm('Are you sure you want to delete this timetable and ALL its data? This cannot be undone.')) return;
     try {
-      await axios.delete(`${API_URL}/config/${id}`);
-      invalidateCache();
-      setAllConfigs(prev => prev.filter(c => c.id !== id));
+      await withLoading(async () => {
+        await axios.delete(`${API_URL}/config/${id}`);
+        invalidateCache();
+        setAllConfigs(prev => prev.filter(c => c.id !== id));
+      }, 'Deleting timetable...');
     } catch (err: any) {
       console.error('[Delete timetable error]', err);
       const status = err.response?.status;

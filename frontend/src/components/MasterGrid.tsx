@@ -6,6 +6,7 @@ import { parse, addMinutes, isBefore, format } from 'date-fns';
 import ExportPopup from './ExportPopup';
 import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
+import { useLoading } from '../contexts/LoadingContext';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 /* Pastel subject block colors for the dark theme */
@@ -21,6 +22,7 @@ const SUBJECT_COLORS = [
 export default function MasterGrid() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
+  const { withLoading } = useLoading();
 
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
@@ -43,12 +45,14 @@ export default function MasterGrid() {
 
   const fetchBaseData = async () => {
     if (!currentConfig?.id) return;
-    const data = await fetchConfigData(currentConfig.id);
-    setBranches(data.branches);
-    setSemesters(data.semesters);
-    setSubjects(data.subjects);
-    setFaculties(data.faculties);
-    setRooms(data.rooms);
+    await withLoading(async () => {
+      const data = await fetchConfigData(currentConfig.id!);
+      setBranches(data.branches);
+      setSemesters(data.semesters);
+      setSubjects(data.subjects);
+      setFaculties(data.faculties);
+      setRooms(data.rooms);
+    }, 'Loading timetable data...');
   };
 
   const loadAllocations = async () => {
@@ -110,9 +114,11 @@ export default function MasterGrid() {
 
   const handleDeleteAllocation = async (id: number) => {
     if (!confirm('Remove this allocation?')) return;
-    await axios.delete(`${API_URL}/allocations/${id}`);
-    invalidateCache();
-    loadAllocations();
+    await withLoading(async () => {
+      await axios.delete(`${API_URL}/allocations/${id}`);
+      invalidateCache();
+      await loadAllocations();
+    }, 'Removing allocation...');
   };
 
   return (
