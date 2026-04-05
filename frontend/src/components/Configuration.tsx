@@ -97,6 +97,10 @@ export default function Configuration() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
 
+  // Track branches that are currently being saved (pending backend response)
+  const [savingBranchIds, setSavingBranchIds] = useState<Set<number>>(new Set());
+  const isBranchPending = (branchId: number) => savingBranchIds.has(branchId);
+
   // Save status indicator
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -190,13 +194,27 @@ export default function Configuration() {
     }
     const tempId = nextTempId();
     setBranches(prev => [...prev, { id: tempId, name, config_id: currentConfig.id }]);
+    setSavingBranchIds(prev => new Set(prev).add(tempId));
     setAddBranchName(''); showSaving();
     axios.post(`${API_URL}/branches`, { name, config_id: currentConfig.id })
-      .then(res => { setBranches(prev => prev.map(b => b.id === tempId ? res.data : b)); invalidateCache(); showSaved(); })
-      .catch(err => { setBranches(prev => prev.filter(b => b.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add branch'); });
+      .then(res => {
+        setBranches(prev => prev.map(b => b.id === tempId ? res.data : b));
+        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
+        invalidateCache(); showSaved();
+      })
+      .catch(err => {
+        setBranches(prev => prev.filter(b => b.id !== tempId));
+        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
+        showError(); alert(err.response?.data?.detail || 'Failed to add branch');
+      });
   };
 
   const handleAddSemester = (branchId: number) => {
+    // Block semester creation if the parent branch hasn't been saved yet
+    if (isBranchPending(branchId)) {
+      alert('Please wait — this branch is still being saved. Try again in a moment.');
+      return;
+    }
     const name = addSemName.trim();
     if (!name || !currentConfig) return;
     if (semesters.some((s: any) => s.branch_id === branchId && s.name.toLowerCase() === name.toLowerCase())) {
@@ -433,19 +451,40 @@ export default function Configuration() {
               return (
                 <div key={branch.id} style={{ marginBottom: 8 }}>
                   {/* Branch header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${accent}22`, marginBottom: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${isBranchPending(branch.id) ? '#FDE68A44' : accent + '22'}`, marginBottom: 4, transition: 'border-color 0.3s' }}>
+                    <div style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: isBranchPending(branch.id) ? '#FDE68A' : accent,
+                      animation: isBranchPending(branch.id) ? 'pulse 1.2s ease-in-out infinite' : 'none',
+                    }} />
                     {editingItem?.type === 'branches' && editingItem.id === branch.id ? (
                       <input autoFocus value={editingItem.value} onChange={e => setEditingItem({ ...editingItem, value: e.target.value })}
                         onKeyDown={e => { if (e.key === 'Enter') handleInlineEdit(); if (e.key === 'Escape') setEditingItem(null); }}
                         onBlur={handleInlineEdit}
                         style={{ ...inputStyle, fontSize: 12, padding: '4px 8px', flexGrow: 1 }} />
                     ) : (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default' }}>{branch.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default' }}>
+                        {branch.name}
+                        {isBranchPending(branch.id) && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6, animation: 'pulse 1.2s ease-in-out infinite' }}>Saving…</span>
+                        )}
+                      </span>
                     )}
-                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF' }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF' }} title="Delete">🗑️</button>
-                    <button onClick={() => { setShowAddSem(showAddSem === branch.id ? null : branch.id); setAddSemName(''); }} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: accent }} title="Add Semester">+</button>
+                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isBranchPending(branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isBranchPending(branch.id) ? 0.3 : 1 }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isBranchPending(branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isBranchPending(branch.id) ? 0.3 : 1 }} title="Delete">🗑️</button>
+                    <button
+                      onClick={() => {
+                        if (isBranchPending(branch.id)) {
+                          alert('Please wait — this branch is still being saved.');
+                          return;
+                        }
+                        setShowAddSem(showAddSem === branch.id ? null : branch.id);
+                        setAddSemName('');
+                      }}
+                      disabled={isBranchPending(branch.id)}
+                      style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: isBranchPending(branch.id) ? '#9CA3AF44' : accent, cursor: isBranchPending(branch.id) ? 'not-allowed' : 'pointer' }}
+                      title={isBranchPending(branch.id) ? 'Branch is saving...' : 'Add Semester'}
+                    >+</button>
                   </div>
 
                   {/* Add semester inline */}
