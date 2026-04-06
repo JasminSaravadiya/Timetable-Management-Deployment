@@ -97,13 +97,16 @@ export default function Configuration() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
 
-  // Dirty / saved tracking
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaved, setIsSaved] = useState(true); // true on initial load (nothing to save)
+  // Track branches that are currently being saved (pending backend response)
+  const [savingBranchIds, setSavingBranchIds] = useState<Set<number>>(new Set());
+  const isBranchPending = (branchId: number) => savingBranchIds.has(branchId);
 
   // Save status indicator
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Navigation-after-save state (for when user clicks Next while saving)
+  const [pendingNavigate, setPendingNavigate] = useState(false);
   const isSaving = saveStatus === 'saving';
 
   const showSaving = () => setSaveStatus('saving');
@@ -118,12 +121,17 @@ export default function Configuration() {
     saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
-  // Temp ID counter for local inserts (negative to avoid collisions with DB IDs)
+  // Auto-navigate to /grid once a pending save completes
+  useEffect(() => {
+    if (!isSaving && pendingNavigate) {
+      setPendingNavigate(false);
+      navigate('/grid');
+    }
+  }, [isSaving, pendingNavigate]);
+
+  // Temp ID counter for optimistic inserts (negative to avoid collisions with DB IDs)
   const tempIdCounter = React.useRef(-1);
   const nextTempId = () => tempIdCounter.current--;
-
-  // Helper: mark state as dirty after any local change
-  const markDirty = () => { setIsDirty(true); setIsSaved(false); };
 
   // Selection
   const [selectedSemId, setSelectedSemId] = useState<number | null>(null);
@@ -143,7 +151,7 @@ export default function Configuration() {
   const [addSubjectHours, setAddSubjectHours] = useState('4');
   const [addRoomName, setAddRoomName] = useState('');
   const [addRoomCapacity, setAddRoomCapacity] = useState('60');
-  const [showAddSem, setShowAddSem] = useState<number | null>(null);
+  const [showAddSem, setShowAddSem] = useState<number | null>(null); // branch id to show add-sem form
 
   // Tabs & Custom Modal
   const [activeTab, setActiveTab] = useState<'faculty' | 'rooms'>('faculty');
@@ -155,15 +163,6 @@ export default function Configuration() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // ─── Warn before closing tab with unsaved changes ───
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
   /* ─── Data fetching ─── */
   const fetchAll = useCallback(async () => {
     if (!currentConfig?.id) return;
@@ -173,15 +172,13 @@ export default function Configuration() {
     setFaculties(data.faculties);
     setRooms(data.rooms);
     setSubjects(data.subjects);
-    setIsDirty(false);
-    setIsSaved(true);
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Fetch mapped faculties when semester changes (only for saved semesters)
+  // Fetch mapped faculties when semester changes
   useEffect(() => {
-    if (selectedSemId && selectedSemId > 0) {
+    if (selectedSemId) {
       axios.get(`${API_URL}/mappings/faculty/${selectedSemId}`).then(r => setMappedFaculties(r.data));
     } else {
       setMappedFaculties([]);
@@ -190,72 +187,7 @@ export default function Configuration() {
 
   const semSubjects = subjects.filter((s: any) => s.semester_id === selectedSemId);
 
-  /* ═══════════════════════════════════════════
-     SAVE ALL — single bulk API call
-     ═══════════════════════════════════════════ */
-  const saveAll = async () => {
-    if (!currentConfig?.id || !isDirty) return;
-    showSaving();
-    try {
-      // Build nested payload: branches → semesters → subjects
-      const branchPayload = branches.map((b: any) => {
-        const branchSems = semesters.filter((s: any) => s.branch_id === b.id);
-        return {
-          id: b.id > 0 ? b.id : null,
-          name: b.name,
-          semesters: branchSems.map((s: any) => ({
-            id: s.id > 0 ? s.id : null,
-            name: s.name,
-            subjects: subjects
-              .filter((sub: any) => sub.semester_id === s.id)
-              .map((sub: any) => ({
-                id: sub.id > 0 ? sub.id : null,
-                name: sub.name,
-                weekly_hours: sub.weekly_hours,
-              })),
-          })),
-        };
-      });
-
-      const facultyPayload = faculties.map((f: any) => ({
-        id: f.id > 0 ? f.id : null,
-        name: f.name,
-        weekly_workload_minutes: f.weekly_workload_minutes,
-        ignore_collision: f.ignore_collision || false,
-      }));
-
-      const roomPayload = rooms.map((r: any) => ({
-        id: r.id > 0 ? r.id : null,
-        name: r.name,
-        capacity: r.capacity,
-      }));
-
-      const res = await axios.post(`${API_URL}/save-all`, {
-        config_id: currentConfig.id,
-        branches: branchPayload,
-        faculties: facultyPayload,
-        rooms: roomPayload,
-      });
-
-      // Replace local state with server-returned data (real IDs)
-      const data = res.data;
-      setBranches(data.branches);
-      setSemesters(data.semesters);
-      setSubjects(data.subjects);
-      setFaculties(data.faculties);
-      setRooms(data.rooms);
-
-      invalidateCache();
-      setIsDirty(false);
-      setIsSaved(true);
-      showSaved();
-    } catch (err: any) {
-      showError();
-      alert(err.response?.data?.detail || 'Failed to save changes');
-    }
-  };
-
-  /* ─── CRUD helpers (LOCAL STATE ONLY — no API calls) ─── */
+  /* ─── CRUD helpers ─── */
   const handleAddBranch = () => {
     const name = addBranchName.trim();
     if (!name || !currentConfig) return;
@@ -264,11 +196,27 @@ export default function Configuration() {
     }
     const tempId = nextTempId();
     setBranches(prev => [...prev, { id: tempId, name, config_id: currentConfig.id }]);
-    setAddBranchName('');
-    markDirty();
+    setSavingBranchIds(prev => new Set(prev).add(tempId));
+    setAddBranchName(''); showSaving();
+    axios.post(`${API_URL}/branches`, { name, config_id: currentConfig.id })
+      .then(res => {
+        setBranches(prev => prev.map(b => b.id === tempId ? res.data : b));
+        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
+        invalidateCache(); showSaved();
+      })
+      .catch(err => {
+        setBranches(prev => prev.filter(b => b.id !== tempId));
+        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
+        showError(); alert(err.response?.data?.detail || 'Failed to add branch');
+      });
   };
 
   const handleAddSemester = (branchId: number) => {
+    // Block semester creation if the parent branch hasn't been saved yet
+    if (isBranchPending(branchId)) {
+      alert('Please wait — this branch is still being saved. Try again in a moment.');
+      return;
+    }
     const name = addSemName.trim();
     if (!name || !currentConfig) return;
     if (semesters.some((s: any) => s.branch_id === branchId && s.name.toLowerCase() === name.toLowerCase())) {
@@ -276,8 +224,10 @@ export default function Configuration() {
     }
     const tempId = nextTempId();
     setSemesters(prev => [...prev, { id: tempId, name, branch_id: branchId, config_id: currentConfig.id }]);
-    setAddSemName(''); setShowAddSem(null);
-    markDirty();
+    setAddSemName(''); setShowAddSem(null); showSaving();
+    axios.post(`${API_URL}/semesters`, { name, branch_id: branchId, config_id: currentConfig.id })
+      .then(res => { setSemesters(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
+      .catch(err => { setSemesters(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add semester'); });
   };
 
   const handleAddFaculty = () => {
@@ -289,8 +239,10 @@ export default function Configuration() {
     const mins = timeToMins(addFacultyWorkload);
     const tempId = nextTempId();
     setFaculties(prev => [...prev, { id: tempId, name, weekly_workload_minutes: mins, config_id: currentConfig.id, ignore_collision: false }]);
-    setAddFacultyName(''); setAddFacultyWorkload('04:00');
-    markDirty();
+    setAddFacultyName(''); setAddFacultyWorkload('04:00'); showSaving();
+    axios.post(`${API_URL}/faculties`, { name, weekly_workload_minutes: mins, config_id: currentConfig.id })
+      .then(res => { setFaculties(prev => prev.map(f => f.id === tempId ? res.data : f)); invalidateCache(); showSaved(); })
+      .catch(err => { setFaculties(prev => prev.filter(f => f.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add faculty'); });
   };
 
   const handleAddSubject = () => {
@@ -302,8 +254,10 @@ export default function Configuration() {
     const hours = parseFloat(addSubjectHours) || 4;
     const tempId = nextTempId();
     setSubjects(prev => [...prev, { id: tempId, name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id }]);
-    setAddSubjectName(''); setAddSubjectHours('4');
-    markDirty();
+    setAddSubjectName(''); setAddSubjectHours('4'); showSaving();
+    axios.post(`${API_URL}/subjects`, { name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id })
+      .then(res => { setSubjects(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
+      .catch(err => { setSubjects(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add subject'); });
   };
 
   const handleAddRoom = () => {
@@ -315,8 +269,10 @@ export default function Configuration() {
     const cap = parseInt(addRoomCapacity) || 60;
     const tempId = nextTempId();
     setRooms(prev => [...prev, { id: tempId, name, capacity: cap, config_id: currentConfig.id }]);
-    setAddRoomName(''); setAddRoomCapacity('60');
-    markDirty();
+    setAddRoomName(''); setAddRoomCapacity('60'); showSaving();
+    axios.post(`${API_URL}/rooms`, { name, capacity: cap, config_id: currentConfig.id })
+      .then(res => { setRooms(prev => prev.map(r => r.id === tempId ? res.data : r)); invalidateCache(); showSaved(); })
+      .catch(err => { setRooms(prev => prev.filter(r => r.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add room'); });
   };
 
   const handleDelete = (type: string, id: number) => {
@@ -326,38 +282,12 @@ export default function Configuration() {
   const confirmDeletion = async () => {
     if (!confirmDeleteObj) return;
     const { type, id } = confirmDeleteObj;
-
-    // If item has a temp ID (negative), it was never saved — just remove from local state
-    if (id < 0) {
-      if (type === 'branches') {
-        const branchSemIds = semesters.filter(s => s.branch_id === id).map(s => s.id);
-        setBranches(prev => prev.filter(b => b.id !== id));
-        setSemesters(prev => prev.filter(s => s.branch_id !== id));
-        setSubjects(prev => prev.filter(sub => !branchSemIds.includes(sub.semester_id)));
-        if (selectedSemId && branchSemIds.includes(selectedSemId)) setSelectedSemId(null);
-      } else if (type === 'semesters') {
-        setSemesters(prev => prev.filter(s => s.id !== id));
-        setSubjects(prev => prev.filter(sub => sub.semester_id !== id));
-        if (selectedSemId === id) setSelectedSemId(null);
-      } else if (type === 'subjects') {
-        setSubjects(prev => prev.filter(s => s.id !== id));
-      } else if (type === 'faculties') {
-        setFaculties(prev => prev.filter(f => f.id !== id));
-        setMappedFaculties(prev => prev.filter((f: any) => f.id !== id));
-      } else if (type === 'rooms') {
-        setRooms(prev => prev.filter(r => r.id !== id));
-      }
-      setConfirmDeleteObj(null);
-      markDirty();
-      return;
-    }
-
-    // Saved item — call DELETE API
     setDeletingItem({ type, id });
     try {
       await axios.delete(`${API_URL}/${type}/${id}`);
       invalidateCache();
 
+      // Immutable state updates instead of fetchAll() to prevent UI instability
       if (type === 'branches') {
         const branchSemIds = semesters.filter(s => s.branch_id === id).map(s => s.id);
         setBranches(prev => prev.filter(b => b.id !== id));
@@ -401,9 +331,9 @@ export default function Configuration() {
   const handleInlineEdit = () => {
     if (!editingItem) return;
     const { type, id, field, value } = editingItem;
-    setEditingItem(null);
+    setEditingItem(null); // close editor instantly
 
-    // Apply changes to local state only — no API call
+    // Apply changes to local state immediately
     const applyUpdate = (list: any[], setList: any) => {
       setList(list.map((item: any) => {
         if (item.id !== id) return item;
@@ -422,7 +352,32 @@ export default function Configuration() {
     else if (type === 'faculties') applyUpdate(faculties, setFaculties);
     else if (type === 'rooms') applyUpdate(rooms, setRooms);
 
-    markDirty();
+    // Background save
+    showSaving();
+    let apiCall;
+    if (type === 'faculties' && field === 'complex') {
+      const parsed = JSON.parse(value);
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { name: parsed.name, weekly_workload_minutes: timeToMins(parsed.workload) });
+    } else if (type === 'faculties' && field === 'ignore_collision') {
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
+    } else {
+      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
+    }
+    apiCall
+      .then(res => {
+        // Replace with server data to ensure consistency
+        const updated = res.data;
+        if (type === 'branches') setBranches(prev => prev.map(b => b.id === id ? updated : b));
+        else if (type === 'semesters') setSemesters(prev => prev.map(s => s.id === id ? updated : s));
+        else if (type === 'subjects') setSubjects(prev => prev.map(s => s.id === id ? updated : s));
+        else if (type === 'faculties') setFaculties(prev => prev.map(f => f.id === id ? updated : f));
+        else if (type === 'rooms') setRooms(prev => prev.map(r => r.id === id ? updated : r));
+        invalidateCache(); showSaved();
+      })
+      .catch(err => {
+        showError(); invalidateCache(); fetchAll(); // rollback by refetching
+        alert(err.response?.data?.detail || `Failed to update ${type}`);
+      });
   };
 
   /* ─── Drag handlers ─── */
@@ -501,10 +456,11 @@ export default function Configuration() {
               return (
                 <div key={branch.id} style={{ marginBottom: 8 }}>
                   {/* Branch header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${branch.id < 0 ? '#FDE68A44' : accent + '22'}`, marginBottom: 4, transition: 'border-color 0.3s' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${isBranchPending(branch.id) ? '#FDE68A44' : accent + '22'}`, marginBottom: 4, transition: 'border-color 0.3s' }}>
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: branch.id < 0 ? '#FDE68A' : accent,
+                      background: isBranchPending(branch.id) ? '#FDE68A' : accent,
+                      animation: isBranchPending(branch.id) ? 'pulse 1.2s ease-in-out infinite' : 'none',
                     }} />
                     {editingItem?.type === 'branches' && editingItem.id === branch.id ? (
                       <input autoFocus value={editingItem.value} onChange={e => setEditingItem({ ...editingItem, value: e.target.value })}
@@ -514,20 +470,25 @@ export default function Configuration() {
                     ) : (
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default' }}>
                         {branch.name}
-                        {branch.id < 0 && (
-                          <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6 }}>unsaved</span>
+                        {isBranchPending(branch.id) && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6, animation: 'pulse 1.2s ease-in-out infinite' }}>Saving…</span>
                         )}
                       </span>
                     )}
-                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('branches', branch.id) ? 0.3 : 1 }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('branches', branch.id) ? 0.3 : 1 }} title="Delete">{isItemDeleting('branches', branch.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
+                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Delete">{isItemDeleting('branches', branch.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
                     <button
                       onClick={() => {
+                        if (isBranchPending(branch.id)) {
+                          alert('Please wait — this branch is still being saved.');
+                          return;
+                        }
                         setShowAddSem(showAddSem === branch.id ? null : branch.id);
                         setAddSemName('');
                       }}
-                      style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: accent, cursor: 'pointer' }}
-                      title='Add Semester'
+                      disabled={isBranchPending(branch.id)}
+                      style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: isBranchPending(branch.id) ? '#9CA3AF44' : accent, cursor: isBranchPending(branch.id) ? 'not-allowed' : 'pointer' }}
+                      title={isBranchPending(branch.id) ? 'Branch is saving...' : 'Add Semester'}
                     >+</button>
                   </div>
 
@@ -578,15 +539,12 @@ export default function Configuration() {
             )}
           </div>
 
-          {/* Back button + Save + Next button */}
+          {/* Back button + Next button */}
           <div style={{ padding: '16px', borderTop: '1px solid #2E3345', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* Back to Home */}
             <button
               id="btn-back-home"
-              onClick={() => {
-                if (isDirty && !window.confirm('You have unsaved changes. Leave without saving?')) return;
-                navigate('/');
-              }}
+              onClick={() => navigate('/')}
               style={{
                 width: '100%',
                 padding: '9px 0',
@@ -616,58 +574,28 @@ export default function Configuration() {
               ← Back to Home
             </button>
 
-            {/* Save Changes */}
-            <button
-              id="btn-save-all"
-              onClick={saveAll}
-              disabled={!isDirty || isSaving}
-              className="btn-primary"
-              style={{
-                width: '100%',
-                padding: '11px 0',
-                borderRadius: 10,
-                position: 'relative',
-                opacity: !isDirty ? 0.5 : 1,
-                cursor: !isDirty || isSaving ? 'not-allowed' : 'pointer',
-                background: isDirty ? 'linear-gradient(135deg, #34d399, #10b981)' : 'linear-gradient(135deg, #374151, #4B5563)',
-                color: isDirty ? '#0D0F14' : '#9CA3AF',
-                fontWeight: 700,
-                fontSize: 13,
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                transition: 'all 0.2s',
-                fontFamily: "'Inter', sans-serif",
-                boxShadow: isDirty ? '0 2px 8px rgba(52,211,153,0.3)' : 'none',
-              }}
-            >
-              {isSaving ? '⏳ Saving...' : isDirty ? '💾 Save Changes' : '✓ All Saved'}
-            </button>
-
-            {/* Next — blocked until saved */}
+            {/* Next — handles save-in-progress */}
             <button
               id="btn-next-grid"
               onClick={() => {
-                if (isDirty) {
-                  alert('Please save your changes before proceeding.');
-                  return;
+                if (isSaving) {
+                  setPendingNavigate(true); // will auto-navigate after save
+                } else {
+                  navigate('/grid');
                 }
-                navigate('/grid');
               }}
-              disabled={isDirty || isSaving}
+              disabled={pendingNavigate}
               className="btn-primary"
               style={{
                 width: '100%',
                 padding: '12px 0',
                 borderRadius: 12,
                 position: 'relative',
-                opacity: isDirty ? 0.5 : 1,
-                cursor: isDirty || isSaving ? 'not-allowed' : 'pointer',
+                opacity: pendingNavigate ? 0.8 : 1,
+                cursor: pendingNavigate ? 'wait' : 'pointer',
               }}
             >
-              {isDirty ? '⚠️ Save First' : 'Next →'}
+              {isSaving && !pendingNavigate ? '⏳ Saving...' : pendingNavigate ? '⏳ Waiting...' : 'Next →'}
             </button>
           </div>
         </div>
@@ -811,8 +739,11 @@ export default function Configuration() {
                     onEditCancel={() => setEditingItem(null)}
                     onDelete={() => handleDelete('faculties', fac.id)}
                     onToggleCollision={(newVal: boolean) => {
-                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f));
-                      markDirty();
+                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f)); // instant
+                      showSaving();
+                      axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal })
+                        .then(res => { setFaculties(prev => prev.map(f => f.id === fac.id ? res.data : f)); invalidateCache(); showSaved(); })
+                        .catch(() => { setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: !newVal } : f)); showError(); });
                     }}
                     isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
                     isDeleting={isItemDeleting('faculties', fac.id)}
