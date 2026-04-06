@@ -156,6 +156,8 @@ export default function Configuration() {
   // Tabs & Custom Modal
   const [activeTab, setActiveTab] = useState<'faculty' | 'rooms'>('faculty');
   const [confirmDeleteObj, setConfirmDeleteObj] = useState<{ type: string; id: number } | null>(null);
+  const [deletingItem, setDeletingItem] = useState<{ type: string; id: number } | null>(null);
+  const isItemDeleting = (type: string, id: number) => deletingItem?.type === type && deletingItem?.id === id;
 
   // Drag state
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -280,6 +282,7 @@ export default function Configuration() {
   const confirmDeletion = async () => {
     if (!confirmDeleteObj) return;
     const { type, id } = confirmDeleteObj;
+    setDeletingItem({ type, id });
     try {
       await axios.delete(`${API_URL}/${type}/${id}`);
       invalidateCache();
@@ -312,6 +315,8 @@ export default function Configuration() {
         alert("Failed to delete item.");
       }
       setConfirmDeleteObj(null);
+    } finally {
+      setDeletingItem(null);
     }
   };
 
@@ -470,8 +475,8 @@ export default function Configuration() {
                         )}
                       </span>
                     )}
-                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isBranchPending(branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isBranchPending(branch.id) ? 0.3 : 1 }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isBranchPending(branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isBranchPending(branch.id) ? 0.3 : 1 }} title="Delete">🗑️</button>
+                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Delete">{isItemDeleting('branches', branch.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
                     <button
                       onClick={() => {
                         if (isBranchPending(branch.id)) {
@@ -520,8 +525,8 @@ export default function Configuration() {
                           {branch.name} {sem.name}
                         </span>
                       )}
-                      <button onClick={e => { e.stopPropagation(); setEditingItem({ type: 'semesters', id: sem.id, field: 'name', value: sem.name }); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: 0.6 }}>✏️</button>
-                      <button onClick={e => { e.stopPropagation(); handleDelete('semesters', sem.id); }} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: 0.6 }}>🗑️</button>
+                      <button onClick={e => { e.stopPropagation(); setEditingItem({ type: 'semesters', id: sem.id, field: 'name', value: sem.name }); }} disabled={isItemDeleting('semesters', sem.id)} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('semesters', sem.id) ? 0.3 : 0.6 }}>✏️</button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete('semesters', sem.id); }} disabled={isItemDeleting('semesters', sem.id)} style={{ ...iconBtnStyle, width: 18, height: 18, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('semesters', sem.id) ? 0.3 : 0.6 }}>{isItemDeleting('semesters', sem.id) ? <span className="delete-spinner" style={{ width: 10, height: 10 }} /> : '🗑️'}</button>
                     </div>
                   ))}
                 </div>
@@ -638,8 +643,8 @@ export default function Configuration() {
                           <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#E5E7EB' }}>{sub.name}</span>
                           <span style={{ width: 80, textAlign: 'center', fontSize: 13, fontWeight: 600, color: ACCENT_COLORS[idx % ACCENT_COLORS.length] }}>{sub.weekly_hours}h</span>
                           <div style={{ width: 60, display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                            <button onClick={() => setEditingItem({ type: 'subjects', id: sub.id, field: 'name', value: sub.name })} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }}>✏️</button>
-                            <button onClick={() => handleDelete('subjects', sub.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }}>🗑️</button>
+                            <button onClick={() => setEditingItem({ type: 'subjects', id: sub.id, field: 'name', value: sub.name })} disabled={isItemDeleting('subjects', sub.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10, opacity: isItemDeleting('subjects', sub.id) ? 0.3 : 1 }}>✏️</button>
+                            <button onClick={() => handleDelete('subjects', sub.id)} disabled={isItemDeleting('subjects', sub.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10, opacity: isItemDeleting('subjects', sub.id) ? 0.3 : 1 }}>{isItemDeleting('subjects', sub.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
                           </div>
                         </>
                       )}
@@ -741,6 +746,7 @@ export default function Configuration() {
                         .catch(() => { setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: !newVal } : f)); showError(); });
                     }}
                     isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
+                    isDeleting={isItemDeleting('faculties', fac.id)}
                   />
                 ))}
                 {faculties.length === 0 && (
@@ -788,8 +794,8 @@ export default function Configuration() {
                       )}
                       <span style={{ fontSize: 10, color: '#2E3345', fontWeight: 600 }}>Cap: {rm.capacity}</span>
                     </div>
-                    <button onClick={() => setEditingItem({ type: 'rooms', id: rm.id, field: 'name', value: rm.name })} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF' }}>✏️</button>
-                    <button onClick={() => handleDelete('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF' }}>🗑️</button>
+                    <button onClick={() => setEditingItem({ type: 'rooms', id: rm.id, field: 'name', value: rm.name })} disabled={isItemDeleting('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('rooms', rm.id) ? 0.3 : 1 }}>✏️</button>
+                    <button onClick={() => handleDelete('rooms', rm.id)} disabled={isItemDeleting('rooms', rm.id)} style={{ ...iconBtnStyle, width: 20, height: 20, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('rooms', rm.id) ? 0.3 : 1 }}>{isItemDeleting('rooms', rm.id) ? <span className="delete-spinner" style={{ width: 10, height: 10 }} /> : '🗑️'}</button>
                   </div>
                 ))}
                 {rooms.length === 0 && (
@@ -837,8 +843,11 @@ export default function Configuration() {
               )}
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setConfirmDeleteObj(null)} style={{ flex: 1, padding: '10px 0', background: '#242838', border: '1px solid #2E3345', color: '#E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Cancel</button>
-                <button onClick={confirmDeletion} style={{ flex: 1, padding: '10px 0', background: '#e11d48', border: 'none', color: '#E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}>Delete</button>
+                <button onClick={() => setConfirmDeleteObj(null)} disabled={!!deletingItem} style={{ flex: 1, padding: '10px 0', background: '#242838', border: '1px solid #2E3345', color: '#E5E7EB', borderRadius: 8, cursor: deletingItem ? 'not-allowed' : 'pointer', fontWeight: 600, transition: 'all 0.2s', opacity: deletingItem ? 0.5 : 1 }}>Cancel</button>
+                <button onClick={confirmDeletion} disabled={!!deletingItem} style={{ flex: 1, padding: '10px 0', background: deletingItem ? '#9f1239' : '#e11d48', border: 'none', color: '#E5E7EB', borderRadius: 8, cursor: deletingItem ? 'not-allowed' : 'pointer', fontWeight: 600, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {deletingItem && <span className="delete-spinner" />}
+                  {deletingItem ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
           </div>
@@ -851,7 +860,7 @@ export default function Configuration() {
 /* ═══════════════════════════════════════════════════════
    DRAGGABLE FACULTY CARD
    ═══════════════════════════════════════════════════════ */
-function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange, onEditSubmit, onEditCancel, onDelete, onToggleCollision, isMapped }: any) {
+function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange, onEditSubmit, onEditCancel, onDelete, onToggleCollision, isMapped, isDeleting }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `fac-${faculty.id}` });
   const accent = ACCENT_COLORS[idx % ACCENT_COLORS.length];
 
@@ -932,8 +941,9 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
         <button
           onClick={e => { e.stopPropagation(); onDelete(); }}
           onPointerDown={e => e.stopPropagation()}
-          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF' }}
-        >🗑️</button>
+          disabled={isDeleting}
+          style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 9, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isDeleting ? 0.3 : 1 }}
+        >{isDeleting ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
       </div>
     </div>
   );
