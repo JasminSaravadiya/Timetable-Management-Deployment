@@ -139,3 +139,44 @@ class AllocationOut(AllocationBase):
     id: int
     class Config:
         from_attributes = True
+
+# --- Bulk Save ---
+class BulkBranchItem(BaseModel):
+    id: Optional[int] = None  # negative or None = new, positive = update
+    name: str
+    semesters: List['BulkSemesterItem'] = []
+
+class BulkSemesterItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    subjects: List['BulkSubjectItem'] = []
+
+class BulkSubjectItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    weekly_hours: float = 4.0
+
+class BulkFacultyItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    weekly_workload_minutes: int = 2400
+    ignore_collision: bool = False
+
+class BulkRoomItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    capacity: int = 60
+
+class BulkSavePayload(BaseModel):
+    config_id: int
+    branches: List[BulkBranchItem] = []
+    faculties: List[BulkFacultyItem] = []
+    rooms: List[BulkRoomItem] = []
+
+class BulkSaveResponse(BaseModel):
+    status: str = "saved"
+    branches: List[BranchOut] = []
+    semesters: List[SemesterOut] = []
+    subjects: List[SubjectOut] = []
+    faculties: List[FacultyOut] = []
+    rooms: List[RoomOut] = []

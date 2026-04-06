@@ -458,6 +458,184 @@ async def delete_room(room_id: int, db: AsyncSession = Depends(get_db)):
     return {"status": "deleted"}
 
 # ═══════════════════════════════════
+#  BULK SAVE  (single transaction)
+# ═══════════════════════════════════
+@app.post("/api/save-all")
+async def bulk_save(payload: schemas.BulkSavePayload, db: AsyncSession = Depends(get_db)):
+    """
+    Receive ALL config data (branches with nested semesters/subjects,
+    faculties, rooms) and save in one DB transaction.
+    - Items with id > 0 → UPDATE existing row
+    - Items with id <= 0 or id == None → INSERT new row
+    Returns the full saved state with real DB IDs.
+    """
+    config_id = payload.config_id
+
+    # Verify config exists
+    cfg_result = await db.execute(select(models.TimetableConfig).filter(models.TimetableConfig.id == config_id))
+    if not cfg_result.scalars().first():
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    saved_branches = []
+    saved_semesters = []
+    saved_subjects = []
+
+    # ── Process branches (with nested semesters & subjects) ──
+    for b_item in payload.branches:
+        if b_item.id is not None and b_item.id > 0:
+            # UPDATE existing branch
+            result = await db.execute(select(models.Branch).filter(models.Branch.id == b_item.id))
+            branch = result.scalars().first()
+            if branch:
+                branch.name = b_item.name
+            else:
+                branch = models.Branch(name=b_item.name, config_id=config_id)
+                db.add(branch)
+        else:
+            # INSERT new branch (check duplicate)
+            dup = await db.execute(
+                select(models.Branch).filter(
+                    models.Branch.config_id == config_id,
+                    models.Branch.name == b_item.name
+                )
+            )
+            if dup.scalars().first():
+                raise HTTPException(status_code=400, detail=f"Branch '{b_item.name}' already exists.")
+            branch = models.Branch(name=b_item.name, config_id=config_id)
+            db.add(branch)
+
+        await db.flush()  # get real ID
+        saved_branches.append(branch)
+
+        # ── Nested semesters ──
+        for s_item in b_item.semesters:
+            if s_item.id is not None and s_item.id > 0:
+                result = await db.execute(select(models.Semester).filter(models.Semester.id == s_item.id))
+                semester = result.scalars().first()
+                if semester:
+                    semester.name = s_item.name
+                    semester.branch_id = branch.id
+                else:
+                    semester = models.Semester(name=s_item.name, branch_id=branch.id, config_id=config_id)
+                    db.add(semester)
+            else:
+                # INSERT new semester (check duplicate within branch)
+                dup = await db.execute(
+                    select(models.Semester).filter(
+                        models.Semester.config_id == config_id,
+                        models.Semester.branch_id == branch.id,
+                        models.Semester.name == s_item.name
+                    )
+                )
+                if dup.scalars().first():
+                    raise HTTPException(status_code=400, detail=f"Semester '{s_item.name}' already exists in branch '{b_item.name}'.")
+                semester = models.Semester(name=s_item.name, branch_id=branch.id, config_id=config_id)
+                db.add(semester)
+
+            await db.flush()
+            saved_semesters.append(semester)
+
+            # ── Nested subjects ──
+            for sub_item in s_item.subjects:
+                if sub_item.id is not None and sub_item.id > 0:
+                    result = await db.execute(select(models.Subject).filter(models.Subject.id == sub_item.id))
+                    subject = result.scalars().first()
+                    if subject:
+                        subject.name = sub_item.name
+                        subject.weekly_hours = sub_item.weekly_hours
+                        subject.semester_id = semester.id
+                    else:
+                        subject = models.Subject(name=sub_item.name, semester_id=semester.id, weekly_hours=sub_item.weekly_hours, config_id=config_id)
+                        db.add(subject)
+                else:
+                    dup = await db.execute(
+                        select(models.Subject).filter(
+                            models.Subject.config_id == config_id,
+                            models.Subject.semester_id == semester.id,
+                            models.Subject.name == sub_item.name
+                        )
+                    )
+                    if dup.scalars().first():
+                        raise HTTPException(status_code=400, detail=f"Subject '{sub_item.name}' already exists in semester '{s_item.name}'.")
+                    subject = models.Subject(name=sub_item.name, semester_id=semester.id, weekly_hours=sub_item.weekly_hours, config_id=config_id)
+                    db.add(subject)
+
+                await db.flush()
+                saved_subjects.append(subject)
+
+    # ── Process faculties ──
+    saved_faculties = []
+    for f_item in payload.faculties:
+        if f_item.id is not None and f_item.id > 0:
+            result = await db.execute(select(models.Faculty).filter(models.Faculty.id == f_item.id))
+            faculty = result.scalars().first()
+            if faculty:
+                faculty.name = f_item.name
+                faculty.weekly_workload_minutes = f_item.weekly_workload_minutes
+                faculty.ignore_collision = f_item.ignore_collision
+            else:
+                faculty = models.Faculty(name=f_item.name, weekly_workload_minutes=f_item.weekly_workload_minutes, ignore_collision=f_item.ignore_collision, config_id=config_id)
+                db.add(faculty)
+        else:
+            dup = await db.execute(
+                select(models.Faculty).filter(
+                    models.Faculty.config_id == config_id,
+                    models.Faculty.name == f_item.name
+                )
+            )
+            if dup.scalars().first():
+                raise HTTPException(status_code=400, detail=f"Faculty '{f_item.name}' already exists.")
+            faculty = models.Faculty(name=f_item.name, weekly_workload_minutes=f_item.weekly_workload_minutes, ignore_collision=f_item.ignore_collision, config_id=config_id)
+            db.add(faculty)
+
+        await db.flush()
+        saved_faculties.append(faculty)
+
+    # ── Process rooms ──
+    saved_rooms = []
+    for r_item in payload.rooms:
+        if r_item.id is not None and r_item.id > 0:
+            result = await db.execute(select(models.Room).filter(models.Room.id == r_item.id))
+            room = result.scalars().first()
+            if room:
+                room.name = r_item.name
+                room.capacity = r_item.capacity
+            else:
+                room = models.Room(name=r_item.name, capacity=r_item.capacity, config_id=config_id)
+                db.add(room)
+        else:
+            dup = await db.execute(
+                select(models.Room).filter(
+                    models.Room.config_id == config_id,
+                    models.Room.name == r_item.name
+                )
+            )
+            if dup.scalars().first():
+                raise HTTPException(status_code=400, detail=f"Room '{r_item.name}' already exists.")
+            room = models.Room(name=r_item.name, capacity=r_item.capacity, config_id=config_id)
+            db.add(room)
+
+        await db.flush()
+        saved_rooms.append(room)
+
+    # ── Commit everything in one transaction ──
+    await db.commit()
+    _cache_invalidate()
+
+    # Refresh all objects to get final state
+    for obj in saved_branches + saved_semesters + saved_subjects + saved_faculties + saved_rooms:
+        await db.refresh(obj)
+
+    return {
+        "status": "saved",
+        "branches": [{"id": b.id, "name": b.name, "config_id": b.config_id} for b in saved_branches],
+        "semesters": [{"id": s.id, "name": s.name, "branch_id": s.branch_id, "config_id": s.config_id} for s in saved_semesters],
+        "subjects": [{"id": s.id, "name": s.name, "semester_id": s.semester_id, "weekly_hours": s.weekly_hours, "config_id": s.config_id} for s in saved_subjects],
+        "faculties": [{"id": f.id, "name": f.name, "weekly_workload_minutes": f.weekly_workload_minutes, "ignore_collision": f.ignore_collision, "config_id": f.config_id} for f in saved_faculties],
+        "rooms": [{"id": r.id, "name": r.name, "capacity": r.capacity, "config_id": r.config_id} for r in saved_rooms],
+    }
+
+# ═══════════════════════════════════
 #  MAPPINGS  (faculty & room ↔ semester)
 # ═══════════════════════════════════
 from pydantic import BaseModel
