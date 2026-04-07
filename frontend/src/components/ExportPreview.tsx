@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
+import { parse, addMinutes, isBefore, format } from 'date-fns';
 import { API_URL } from '../config';
+import { fetchConfigData, fetchAllocations } from '../apiCache';
 import { useLoading } from '../contexts/LoadingContext';
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function ExportPreview() {
@@ -12,172 +14,362 @@ export default function ExportPreview() {
   const navigate = useNavigate();
   const { withLoading } = useLoading();
 
-  const [allocations, setAllocations] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [faculties, setFaculties] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
+  const [faculties, setFaculties] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
 
-  const [filterType, setFilterType] = useState('all'); // all, semester, faculty, room
-  const [filterId, setFilterId] = useState('');
+  const [activeTab, setActiveTab] = useState<'branch' | 'faculty' | 'room'>('branch');
+  const [selectedType, setSelectedType] = useState<string>('master');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!currentConfig?.id) return;
+    const load = async () => {
+      await withLoading(async () => {
+        const [data, allocs] = await Promise.all([
+          fetchConfigData(currentConfig.id!),
+          fetchAllocations(currentConfig.id!),
+        ]);
+        setBranches(data.branches);
+        setSemesters(data.semesters);
+        setFaculties(data.faculties);
+        setRooms(data.rooms);
+        setSubjects(data.subjects);
+        setAllocations(allocs);
+      }, 'Loading export data...');
+    };
+    load();
+  }, [currentConfig]);
 
-  const fetchData = async () => {
-    await withLoading(async () => {
-      const [alloc, b, s, sub, fac, rm] = await Promise.all([
-        axios.get(`${API_URL}/allocations`),
-        axios.get(`${API_URL}/branches`),
-        axios.get(`${API_URL}/semesters`),
-        axios.get(`${API_URL}/subjects`),
-        axios.get(`${API_URL}/faculties`),
-        axios.get(`${API_URL}/rooms`)
-      ]);
-      if (currentConfig) {
-        setAllocations(alloc.data.filter((a: any) => a.config_id === currentConfig.id));
+  // Generate timeslots with break awareness
+  const timeslots = useMemo(() => {
+    if (!currentConfig) return [];
+    const slots: any[] = [];
+    const breaks = currentConfig.breaks || [];
+    const start = parse(currentConfig.start_time, 'HH:mm:ss', new Date());
+    const end = parse(currentConfig.end_time, 'HH:mm:ss', new Date());
+    let current = start;
+
+    while (isBefore(current, end)) {
+      const currentStr = format(current, 'HH:mm:ss');
+      const overlappingBreak = breaks.find((b: any) => b.start_time === currentStr);
+      if (overlappingBreak) {
+        const breakEnd = addMinutes(current, overlappingBreak.duration_minutes);
+        slots.push({ type: 'break', start: currentStr, end: format(breakEnd, 'HH:mm:ss'), display: 'Break' });
+        current = breakEnd;
+      } else {
+        const slotEnd = addMinutes(current, currentConfig.slot_duration_minutes);
+        slots.push({ type: 'slot', start: currentStr, end: format(slotEnd, 'HH:mm:ss'), display: `${format(current, 'HH:mm')} - ${format(slotEnd, 'HH:mm')}` });
+        current = slotEnd;
       }
-      setBranches(b.data);
-      setSemesters(s.data);
-      setSubjects(sub.data);
-      setFaculties(fac.data);
-      setRooms(rm.data);
-    }, 'Loading preview data...');
-  };
-
-  const getFilteredData = () => {
-    let filtered = allocations;
-    if (filterType === 'semester' && filterId) {
-      filtered = allocations.filter((a: any) => String(a.semester_id) === filterId);
-    } else if (filterType === 'faculty' && filterId) {
-      filtered = allocations.filter((a: any) => String(a.faculty_id) === filterId);
-    } else if (filterType === 'room' && filterId) {
-      filtered = allocations.filter((a: any) => String(a.room_id) === filterId);
     }
+    return slots;
+  }, [currentConfig]);
 
-    return filtered.map((a: any) => {
-      const sem = semesters.find((s: any) => s.id === a.semester_id);
-      const branch = branches.find((b: any) => b.id === (sem as any)?.branch_id);
-      return {
-        Day: a.day_of_week,
-        StartTime: a.start_time,
-        DurationMins: a.duration_minutes,
-        Branch: (branch as any)?.name,
-        Semester: (sem as any)?.name,
-        Subject: (subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name,
-        Faculty: (faculties.find((f: any) => f.id === a.faculty_id) as any)?.name,
-        Room: (rooms.find((r: any) => r.id === a.room_id) as any)?.name,
-        Batch: a.batch_name || 'All'
-      };
-    });
+  // Filter allocations based on selection
+  const filteredAllocations = useMemo(() => {
+    if (selectedType === 'master') return allocations;
+    const [type, id] = selectedType.split(':');
+    const numId = parseInt(id);
+    if (type === 'semester') return allocations.filter((a: any) => a.semester_id === numId);
+    if (type === 'faculty') return allocations.filter((a: any) => a.faculty_id === numId);
+    if (type === 'room') return allocations.filter((a: any) => a.room_id === numId);
+    return allocations;
+  }, [allocations, selectedType]);
+
+  // Get column structure for the preview
+  const previewColumns = useMemo(() => {
+    if (selectedType === 'master' || selectedType.startsWith('semester:')) {
+      let relevantSems = semesters;
+      if (selectedType.startsWith('semester:')) {
+        const semId = parseInt(selectedType.split(':')[1]);
+        relevantSems = semesters.filter((s: any) => s.id === semId);
+      }
+      return relevantSems.map((s: any) => {
+        const branch = branches.find((b: any) => b.id === s.branch_id);
+        return { id: s.id, label: `${branch?.name || ''} ${s.name}`, type: 'semester' as const };
+      });
+    }
+    if (selectedType.startsWith('faculty:') || selectedType.startsWith('room:')) {
+      const semIds = [...new Set(filteredAllocations.map((a: any) => a.semester_id))];
+      return semIds.map(sid => {
+        const s = semesters.find((sem: any) => sem.id === sid);
+        const branch = s ? branches.find((b: any) => b.id === s.branch_id) : null;
+        return { id: sid, label: `${branch?.name || ''} ${s?.name || ''}`, type: 'semester' as const };
+      });
+    }
+    return [];
+  }, [selectedType, semesters, branches, filteredAllocations]);
+
+  // Helper: get allocations for a cell
+  const getCellAllocs = (day: string, time: string, semId: number) => {
+    return filteredAllocations.filter((a: any) => a.day_of_week === day && a.start_time === time && a.semester_id === semId);
   };
 
-  const exportData = getFilteredData();
+  // Selection label
+  const selectionLabel = useMemo(() => {
+    if (selectedType === 'master') return 'Master Timetable';
+    const [type, id] = selectedType.split(':');
+    const numId = parseInt(id);
+    if (type === 'semester') {
+      const s = semesters.find((sem: any) => sem.id === numId);
+      const b = s ? branches.find((br: any) => br.id === s.branch_id) : null;
+      return `${b?.name || ''} ${s?.name || ''}`;
+    }
+    if (type === 'faculty') {
+      const f = faculties.find((fac: any) => fac.id === numId);
+      return `Faculty: ${f?.name || ''}`;
+    }
+    if (type === 'room') {
+      const r = rooms.find((rm: any) => rm.id === numId);
+      return `Room: ${r?.name || ''}`;
+    }
+    return '';
+  }, [selectedType, semesters, branches, faculties, rooms]);
 
-  const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Timetable");
-    XLSX.writeFile(wb, `${currentConfig?.name || 'Master'}_Timetable.xlsx`);
+  // --- EXPORT via backend ---
+  const downloadExcel = async (exportMode: string, exportValue?: string) => {
+    try {
+      await withLoading(async () => {
+        const params = new URLSearchParams({ config_id: String(currentConfig?.id), mode: exportMode });
+        if (exportValue) params.set('value', exportValue);
+
+        const response = await axios.get(`${API_URL}/export_excel?${params.toString()}`, { responseType: 'blob' });
+
+        // Extract filename from Content-Disposition header
+        let filename = 'Timetable.xlsx';
+        const disposition = response.headers['content-disposition'];
+
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = filenameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        // Create blob download
+        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 'Generating Excel file...');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Export failed');
+    }
   };
+
+  const handleExport = () => {
+    if (selectedType === 'master') {
+      downloadExcel('master');
+    } else {
+      downloadExcel('selected', selectedType);
+    }
+  };
+
+  const handleExportAll = () => {
+    downloadExcel('all');
+  };
+
+  const tabStyle = (tab: string) =>
+    `flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-center cursor-pointer transition-all border-b-2 ${activeTab === tab
+      ? 'border-transparent text-white bg-[#C4B5FD]'
+      : 'border-transparent text-[#9CA3AF] bg-[#2E3345] hover:bg-[#2E3345]'
+    }`;
 
   return (
-    <div className="flex h-screen bg-[#0D0F14] text-[#E5E7EB]">
-      {/* Sidebar Controls */}
-      <div className="w-80 bg-[#1C1F2A] border-r border-[#2E3345] p-6 flex flex-col shadow-xl z-10">
-        <h2 className="text-2xl font-black text-[#E5E7EB] mb-8 border-b border-[#2E3345] pb-4">Export Options</h2>
+    <div className="flex h-screen bg-[#0D0F14] text-[#E5E7EB] overflow-hidden">
+      {/* ══════ LEFT PANEL ══════ */}
+      <div className="w-[280px] min-w-[280px] border-r border-[#2E3345] flex flex-col bg-[#1C1F2A]">
+        {/* Header */}
+        <div className="p-4 border-b border-[#2E3345] flex justify-between items-center bg-[#2E3345]">
+          <h2 className="text-lg font-bold text-[#E5E7EB]">Export Preview</h2>
+          <button onClick={() => navigate('/grid')} className="w-8 h-8 rounded-lg bg-themePrimary hover:bg-[#C4B5FD]/80 text-white flex items-center justify-center text-sm font-bold transition" title="Back to Grid">←</button>
+        </div>
 
-        <div className="flex flex-col gap-6 flex-1">
-          <label className="flex flex-col gap-2">
-            <span className="font-bold text-sm text-themeTextMuted uppercase tracking-widest">Filter By</span>
-            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary font-medium"
-              value={filterType} onChange={(e) => { setFilterType(e.target.value); setFilterId(''); }}>
-              <option value="all">Master (All Data)</option>
-              <option value="semester">Specific Semester</option>
-              <option value="faculty">Specific Faculty</option>
-              <option value="room">Specific Room</option>
-            </select>
-          </label>
+        {/* Tabs */}
+        <div className="flex border-b border-[#2E3345]">
+          <button className={tabStyle('branch')} onClick={() => { setActiveTab('branch'); setSelectedType('master'); }}>Branch</button>
+          <button className={tabStyle('faculty')} onClick={() => { setActiveTab('faculty'); setSelectedType('master'); }}>Faculty</button>
+          <button className={tabStyle('room')} onClick={() => { setActiveTab('room'); setSelectedType('master'); }}>Room</button>
+        </div>
 
-          {filterType === 'semester' && (
-            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
-              value={filterId} onChange={(e) => setFilterId(e.target.value)}>
-              <option value="">Select Semester...</option>
-              {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name} (Branch {s.branch_id})</option>)}
-            </select>
+        {/* Selection list */}
+        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+          {activeTab === 'branch' && (
+            <div className="space-y-1">
+              <button
+                onClick={() => setSelectedType('master')}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold transition ${selectedType === 'master' ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+              >
+                📋 Master Timetable
+              </button>
+              {branches.map((b: any) => {
+                const branchSems = semesters.filter((s: any) => s.branch_id === b.id);
+                return (
+                  <div key={b.id} className="mt-2">
+                    <div className="px-3 py-1.5 text-xs font-bold text-themeSecondary uppercase tracking-wider">{b.name}</div>
+                    {branchSems.map((s: any) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedType(`semester:${s.id}`)}
+                        className={`w-full text-left px-3 py-2 pl-6 rounded-lg text-sm transition ${selectedType === `semester:${s.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMuted hover:bg-themePrimary/50 hover:text-themeTextMain'}`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
-          {filterType === 'faculty' && (
-            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
-              value={filterId} onChange={(e) => setFilterId(e.target.value)}>
-              <option value="">Select Faculty...</option>
-              {faculties.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+          {activeTab === 'faculty' && (
+            <div className="space-y-1">
+              {faculties.map((f: any) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSelectedType(`faculty:${f.id}`)}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 ${selectedType === `faculty:${f.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+                >
+                  <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs flex items-center justify-center font-bold">{f.name?.[0]}</span>
+                  {f.name}
+                </button>
+              ))}
+              {faculties.length === 0 && <p className="text-themeTextMuted text-xs text-center py-4">No faculty found</p>}
+            </div>
           )}
 
-          {filterType === 'room' && (
-            <select className="p-3 bg-[#242838] border border-themeSurface rounded-lg focus:border-themePrimary focus:ring-1 focus:ring-themePrimary"
-              value={filterId} onChange={(e) => setFilterId(e.target.value)}>
-              <option value="">Select Room...</option>
-              {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
+          {activeTab === 'room' && (
+            <div className="space-y-1">
+              {rooms.map((r: any) => (
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedType(`room:${r.id}`)}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 ${selectedType === `room:${r.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+                >
+                  <span className="w-6 h-6 rounded bg-emerald-500/20 text-themeSecondary text-xs flex items-center justify-center font-bold">🚪</span>
+                  {r.name} <span className="text-themeTextMuted text-xs ml-auto">Cap: {r.capacity}</span>
+                </button>
+              ))}
+              {rooms.length === 0 && <p className="text-themeTextMuted text-xs text-center py-4">No rooms found</p>}
+            </div>
           )}
         </div>
 
-        <button onClick={handleExportExcel} className="mt-8 btn-primary flex justify-between items-center group w-full">
-          <span>Download Excel</span>
-          <span className="group-hover:translate-x-1 transition-transform">&darr;</span>
-        </button>
-
-        <button onClick={() => navigate('/grid')} className="mt-4 px-6 py-4 bg-[#2E3345] hover:bg-[#2E3345] text-[#9CA3AF] hover:text-[#E5E7EB] font-bold rounded-xl transition-all w-full">
-          &larr; Back to Grid
-        </button>
+        {/* Export Buttons */}
+        <div className="p-3 border-t border-[#2E3345] space-y-2">
+          <button onClick={handleExport} className="w-full btn-primary text-sm flex items-center justify-center gap-2">
+            ⬇ Export Selected
+          </button>
+          <button onClick={handleExportAll} className="w-full btn-primary text-sm flex items-center justify-center gap-2">
+            📦 Export All
+          </button>
+        </div>
       </div>
 
-      {/* Main Preview Area */}
-      <div className="flex-1 p-8 overflow-auto flex flex-col" style={{ minWidth: 0 }}>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-themeTextMain">
-            Preview Data Grid
-          </h1>
-          <div className="px-4 py-2 bg-[#C4B5FD]/10 text-[#C4B5FD] border border-[#C4B5FD]/30 rounded-full font-bold text-sm">
-            {exportData.length} records matching '{filterType}'
+      {/* ══════ RIGHT PANEL — PREVIEW ══════ */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[#0D0F14]">
+        {/* Preview Header */}
+        <div className="p-4 border-b border-[#2E3345] bg-[#0D0F14] flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="text-[#E5E7EB] font-bold text-lg">{selectionLabel}</h3>
+            <p className="text-[#9CA3AF] text-xs mt-0.5">{filteredAllocations.length} allocations • {previewColumns.length} columns</p>
+          </div>
+          <div className="px-3 py-1.5 bg-[#C4B5FD]/10 border border-themePrimary/50 rounded-full text-themePrimary text-xs font-bold">
+            Preview Mode
           </div>
         </div>
 
-        <div className="flex-1 bg-[#1C1F2A] rounded-2xl shadow-lg border border-[#2E3345] overflow-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-[#262A36] sticky top-0 border-b border-[#2E3345] shadow-sm z-10">
-              <tr>
-                {['Day', 'Start', 'Dur(m)', 'Branch', 'Sem', 'Subject', 'Faculty', 'Room', 'Batch'].map(header => (
-                  <th key={header} className="p-4 text-xs font-black text-themeTextMuted uppercase tracking-widest">{header}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {exportData.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-12 text-center text-themeTextMuted italic font-medium">No records to preview.</td>
+        {/* Excel-like preview grid */}
+        <div className="flex-1 min-h-0 overflow-auto p-4 custom-scrollbar">
+          {/* Title Header mimicking Excel */}
+          <div className="mb-4 text-center">
+            <div className="text-themeTextMuted text-xs font-bold uppercase tracking-widest mb-1">University Timetable</div>
+            <div className="text-[#E5E7EB] text-lg font-bold">{currentConfig?.name || 'Master Timetable'}</div>
+            <div className="text-themeTextMuted text-xs mt-1">{selectionLabel} • {currentConfig?.start_time?.slice(0, 5)} – {currentConfig?.end_time?.slice(0, 5)}</div>
+          </div>
+
+          <div className="bg-[#2E3345] border border-themeSurface rounded-xl overflow-hidden" style={{ display: 'inline-block', minWidth: '100%' }}>
+            <table className="border-collapse text-xs" style={{ width: 'max-content', minWidth: '100%' }}>
+              <thead>
+                <tr className="bg-themeSurface">
+                  <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[60px] sticky left-0 bg-themeSurface z-10 whitespace-nowrap">Day</th>
+                  <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[100px] sticky bg-themeSurface z-10 whitespace-nowrap">Time</th>
+                  {previewColumns.length > 0 ? previewColumns.map((col) => (
+                    <th key={col.id} className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold min-w-[150px] text-center whitespace-nowrap">
+                      {col.label}
+                    </th>
+                  )) : (
+                    <th className="border border-themePrimary p-2 text-themeTextMuted italic whitespace-nowrap">No columns to display</th>
+                  )}
                 </tr>
-              ) : (
-                exportData.map((row: any, idx: number) => (
-                  <tr key={idx} className="border-b border-themeSurface hover:bg-[#0D0F14] transition-colors">
-                    <td className="p-4 font-semibold text-themeTextMain">{row.Day}</td>
-                    <td className="p-4 text-themeTextMuted">{row.StartTime.slice(0, 5)}</td>
-                    <td className="p-4 text-themeTextMuted">{row.DurationMins}</td>
-                    <td className="p-4 font-medium text-themePrimary">{row.Branch}</td>
-                    <td className="p-4 text-themeTextMuted">{row.Semester}</td>
-                    <td className="p-4 font-medium text-themeTextMain">{row.Subject}</td>
-                    <td className="p-4 text-themeSecondary font-semibold">{row.Faculty}</td>
-                    <td className="p-4 font-mono text-themeTextMuted text-sm bg-themeSurface rounded px-2 py-1 mx-2">{row.Room}</td>
-                    <td className="p-4 text-themeTextMuted">{row.Batch}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {DAYS.map((day) => (
+                  <React.Fragment key={day}>
+                    {timeslots.map((slot: any, slotIdx: number) => (
+                      <tr key={`${day}-${slot.start}`} className="bg-[#1C1F2A] hover:bg-[#1C1F2A]/50 transition">
+                        {slotIdx === 0 && (
+                          <td
+                            rowSpan={timeslots.length}
+                            className="border border-themePrimary p-2 text-themePrimary-200 font-bold text-center bg-[#2E3345] sticky left-0 z-10 whitespace-nowrap"
+                            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+                          >
+                            {day.toUpperCase()}
+                          </td>
+                        )}
+                        <td className="border border-themePrimary p-2 text-themeTextMuted font-medium text-center whitespace-nowrap sticky bg-themeBg/90">
+                          {slot.display}
+                        </td>
+                        {slot.type === 'break' ? (
+                          <td
+                            colSpan={Math.max(previewColumns.length, 1)}
+                            className="border border-themePrimary bg-themeSurface/40 text-center text-themeTextMuted font-bold tracking-[0.3em] uppercase py-3 whitespace-nowrap"
+                          >
+                            ── BREAK ──
+                          </td>
+                        ) : (
+                          previewColumns.length > 0 ? previewColumns.map((col) => {
+                            const cellAllocs = getCellAllocs(day, slot.start, col.id);
+                            return (
+                              <td key={col.id} className="border border-themePrimary p-1.5 align-top min-h-[40px]">
+                                {cellAllocs.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {cellAllocs.map((a: any) => (
+                                      <div key={a.id} className="bg-[#1C1F2A] border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
+                                        <div className="font-bold text-themePrimary-200 truncate">{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
+                                        <div className="text-themeSecondary truncate">{faculties.find((f: any) => f.id === a.faculty_id)?.name}</div>
+                                        <div className="flex justify-between text-themeTextMuted">
+                                          <span>{rooms.find((r: any) => r.id === a.room_id)?.name}</span>
+                                          {a.batches?.length > 0 && <span className="text-blue-300">{a.batches.join(',')}</span>}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="h-[30px]" />
+                                )}
+                              </td>
+                            );
+                          }) : (
+                            <td className="border border-themePrimary p-2 text-slate-600 italic text-center whitespace-nowrap">Select an item to preview</td>
+                          )
+                        )}
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
-import ExportPopup from './ExportPopup';
+
 import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 import { useLoading } from '../contexts/LoadingContext';
@@ -35,7 +35,7 @@ export default function MasterGrid() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: string, time: string, semId: number, allocationId?: number } | null>(null);
-  const [showExportPopup, setShowExportPopup] = useState(false);
+
 
   useEffect(() => {
     if (!currentConfig) navigate('/');
@@ -135,7 +135,7 @@ export default function MasterGrid() {
         </div>
         <div className="flex gap-4">
           <button onClick={() => navigate('/configure')} className="btn-primary">⚙ Data</button>
-          <button onClick={() => setShowExportPopup(true)} className="btn-primary">Export &rarr;</button>
+          <button onClick={() => navigate('/export')} className="btn-primary">Export &rarr;</button>
         </div>
       </div>
 
@@ -313,8 +313,7 @@ export default function MasterGrid() {
         />
       )}
 
-      {/* Export Preview Popup */}
-      {showExportPopup && <ExportPopup onClose={() => setShowExportPopup(false)} />}
+
     </div>
   );
 }

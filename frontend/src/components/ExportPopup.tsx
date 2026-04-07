@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { parse, addMinutes, isBefore, format } from 'date-fns';
-import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations } from '../apiCache';
 import { useLoading } from '../contexts/LoadingContext';
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface ExportPopupProps {
@@ -83,7 +83,6 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
   // Get column structure for the preview
   const previewColumns = useMemo(() => {
     if (selectedType === 'master' || selectedType.startsWith('semester:')) {
-      // Show semester columns (filtered)
       let relevantSems = semesters;
       if (selectedType.startsWith('semester:')) {
         const semId = parseInt(selectedType.split(':')[1]);
@@ -95,12 +94,11 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
       });
     }
     if (selectedType.startsWith('faculty:') || selectedType.startsWith('room:')) {
-      // For faculty/room view, show unique semesters that have allocations
       const semIds = [...new Set(filteredAllocations.map((a: any) => a.semester_id))];
       return semIds.map(sid => {
         const s = semesters.find((sem: any) => sem.id === sid);
         const branch = s ? branches.find((b: any) => b.id === s.branch_id) : null;
-        return { id: sid, label: `${branch?.name || ''} ${s?.name || ''}`, type: 'semester' as const };
+        return { id: sid as number, label: `${branch?.name || ''} ${s?.name || ''}`, type: 'semester' as const };
       });
     }
     return [];
@@ -132,40 +130,117 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
     return '';
   }, [selectedType, semesters, branches, faculties, rooms]);
 
-  // --- EXPORT via backend ---
-  const downloadExcel = async (exportMode: string, exportValue?: string) => {
+  // --- EXPORT via Frontend XLSX ---
+  const downloadExcel = async (exportMode: string) => {
     try {
       await withLoading(async () => {
-        const params = new URLSearchParams({ config_id: String(currentConfig?.id), mode: exportMode });
-        if (exportValue) params.set('value', exportValue);
+        const wsData: any[][] = [];
 
-        const response = await axios.get(`${API_URL}/export_excel?${params.toString()}`, { responseType: 'blob' });
+        // 1. Title Rows
+        wsData.push([`University Timetable - ${currentConfig?.name || 'Master Timetable'}`]);
+        wsData.push([`${selectionLabel} • ${currentConfig?.start_time?.slice(0, 5)} – ${currentConfig?.end_time?.slice(0, 5)}`]);
+        wsData.push([]); // Empty row for spacing
 
-        // Extract filename from Content-Disposition header
-        let filename = 'Timetable.xlsx';
-        const disposition = response.headers['content-disposition'];
+        // 2. Headers
+        const headers = ['Day', 'Time'];
+        previewColumns.forEach(col => headers.push(col.label));
+        wsData.push(headers);
 
-        if (disposition && disposition.indexOf('attachment') !== -1) {
-          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-          const matches = filenameRegex.exec(disposition);
-          if (matches != null && matches[1]) {
-            filename = matches[1].replace(/['"]/g, '');
-          }
+        // 3. Populate Rows
+        DAYS.forEach(day => {
+          timeslots.forEach((slot, slotIdx) => {
+            const row: any[] = [];
+
+            // Day column
+            if (slotIdx === 0) {
+              row.push(day);
+            } else {
+              row.push(''); // Leave empty for vertical merge
+            }
+
+            // Time column
+            row.push(slot.display);
+
+            // Data columns
+            if (slot.type === 'break') {
+              row.push('BREAK');
+              // Fill the rest with empty for horizontal merge
+              for (let i = 1; i < previewColumns.length; i++) row.push('');
+            } else {
+              if (previewColumns.length > 0) {
+                previewColumns.forEach(col => {
+                  const cellAllocs = getCellAllocs(day, slot.start, col.id);
+                  if (cellAllocs.length > 0) {
+                    const cellText = cellAllocs.map((a: any) => {
+                      const sub = subjects.find(s => s.id === a.subject_id)?.name || 'Unknown Sub';
+                      const fac = faculties.find(f => f.id === a.faculty_id)?.name || 'Unknown Fac';
+                      const rm = rooms.find(r => r.id === a.room_id)?.name || 'Unknown Room';
+                      const batch = a.batches?.length > 0 ? ` [${a.batches.join(',')}]` : '';
+                      return `${sub}\n${fac}\n${rm}${batch}`;
+                    }).join('\n---\n');
+                    row.push(cellText);
+                  } else {
+                    row.push('');
+                  }
+                });
+              } else {
+                row.push('No columns to display');
+              }
+            }
+            wsData.push(row);
+          });
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Styling & Merges
+        if (!ws['!merges']) ws['!merges'] = [];
+
+        // Title merges
+        const maxColIndex = Math.max(headers.length - 1, 1);
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: maxColIndex } });
+        ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: maxColIndex } });
+
+        let currentRow = 3; // Start of actual data (0-indexed)
+        DAYS.forEach(day => {
+          // Merge Day column vertically
+          ws['!merges']!.push({
+            s: { r: currentRow, c: 0 },
+            e: { r: currentRow + timeslots.length - 1, c: 0 }
+          });
+
+          timeslots.forEach(slot => {
+            // Merge Break rows horizontally
+            if (slot.type === 'break') {
+              ws['!merges']!.push({
+                s: { r: currentRow, c: 2 },
+                e: { r: currentRow, c: Math.max(maxColIndex, 2) }
+              });
+            }
+            currentRow++;
+          });
+        });
+
+        // Set column widths
+        const colWidths = [{ wch: 12 }, { wch: 18 }];
+        for (let i = 0; i < previewColumns.length; i++) {
+          colWidths.push({ wch: 30 }); // Wide enough to fit the multiline cell content
         }
+        ws['!cols'] = colWidths;
 
-        // Create blob download
-        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        // Build and save workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Timetable');
+
+        const safeName = selectionLabel.replace(/[^a-zA-Z0-9]/g, '_') || 'Timetable';
+        const filename = exportMode === 'all' ? 'All_Timetables.xlsx' : `Timetable_${safeName}.xlsx`;
+
+        XLSX.writeFile(wb, filename);
+
       }, 'Generating Excel file...');
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Export failed');
+      console.error(err);
+      alert('Export failed. Please check the console for details.');
     }
   };
 
@@ -173,7 +248,7 @@ export default function ExportPopup({ onClose }: ExportPopupProps) {
     if (selectedType === 'master') {
       downloadExcel('master');
     } else {
-      downloadExcel('selected', selectedType);
+      downloadExcel('selected');
     }
   };
 
