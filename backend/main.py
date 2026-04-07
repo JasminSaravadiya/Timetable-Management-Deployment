@@ -8,6 +8,9 @@ from typing import List, Optional
 from datetime import datetime, timedelta, date, time
 import time as _time
 import logging
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.decorator import cache
 
 import models
 import schemas
@@ -56,6 +59,7 @@ def _cache_invalidate():
 
 @app.on_event("startup")
 async def startup():
+    FastAPICache.init(InMemoryBackend())
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
@@ -143,18 +147,13 @@ async def create_branch(branch: schemas.BranchCreate, db: AsyncSession = Depends
     return db_branch
 
 @app.get("/api/branches", response_model=List[schemas.BranchOut])
+@cache(expire=300)
 async def read_branches(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
-    cache_key = f"branches:{config_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
-    query = select(models.Branch).options(selectinload(models.Branch.semesters))
+    query = select(models.Branch)
     if config_id is not None:
         query = query.filter(models.Branch.config_id == config_id)
     result = await db.execute(query)
-    data = result.scalars().all()
-    _cache_set(cache_key, data)
-    return data
+    return result.scalars().all()
 
 @app.put("/api/branches/{branch_id}", response_model=schemas.BranchOut)
 async def update_branch(branch_id: int, data: schemas.BranchUpdate, db: AsyncSession = Depends(get_db)):
@@ -227,21 +226,13 @@ async def create_semester(semester: schemas.SemesterCreate, db: AsyncSession = D
     return db_semester
 
 @app.get("/api/semesters", response_model=List[schemas.SemesterOut])
+@cache(expire=300)
 async def read_semesters(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
-    cache_key = f"semesters:{config_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
-    query = select(models.Semester).options(
-        selectinload(models.Semester.branch),
-        selectinload(models.Semester.subjects)
-    )
+    query = select(models.Semester)
     if config_id is not None:
         query = query.filter(models.Semester.config_id == config_id)
     result = await db.execute(query)
-    data = result.scalars().all()
-    _cache_set(cache_key, data)
-    return data
+    return result.scalars().all()
 
 @app.put("/api/semesters/{semester_id}", response_model=schemas.SemesterOut)
 async def update_semester(semester_id: int, data: schemas.SemesterUpdate, db: AsyncSession = Depends(get_db)):
@@ -302,20 +293,15 @@ async def create_subject(subject: schemas.SubjectCreate, db: AsyncSession = Depe
     return db_subject
 
 @app.get("/api/subjects", response_model=List[schemas.SubjectOut])
+@cache(expire=300)
 async def read_subjects(semester_id: Optional[int] = Query(None), config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
-    cache_key = f"subjects:{semester_id}:{config_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
-    query = select(models.Subject).options(selectinload(models.Subject.semester))
+    query = select(models.Subject)
     if semester_id is not None:
         query = query.filter(models.Subject.semester_id == semester_id)
     if config_id is not None:
         query = query.filter(models.Subject.config_id == config_id)
     result = await db.execute(query)
-    data = result.scalars().all()
-    _cache_set(cache_key, data)
-    return data
+    return result.scalars().all()
 
 @app.put("/api/subjects/{subject_id}", response_model=schemas.SubjectOut)
 async def update_subject(subject_id: int, data: schemas.SubjectUpdate, db: AsyncSession = Depends(get_db)):
@@ -364,18 +350,13 @@ async def create_faculty(faculty: schemas.FacultyCreate, db: AsyncSession = Depe
     return db_faculty
 
 @app.get("/api/faculties", response_model=List[schemas.FacultyOut])
+@cache(expire=300)
 async def read_faculties(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
-    cache_key = f"faculties:{config_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
     query = select(models.Faculty)
     if config_id is not None:
         query = query.filter(models.Faculty.config_id == config_id)
     result = await db.execute(query)
-    data = result.scalars().all()
-    _cache_set(cache_key, data)
-    return data
+    return result.scalars().all()
 
 @app.put("/api/faculties/{faculty_id}", response_model=schemas.FacultyOut)
 async def update_faculty(faculty_id: int, data: schemas.FacultyUpdate, db: AsyncSession = Depends(get_db)):
@@ -424,18 +405,13 @@ async def create_room(room: schemas.RoomCreate, db: AsyncSession = Depends(get_d
     return db_room
 
 @app.get("/api/rooms", response_model=List[schemas.RoomOut])
+@cache(expire=300)
 async def read_rooms(config_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
-    cache_key = f"rooms:{config_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
     query = select(models.Room)
     if config_id is not None:
         query = query.filter(models.Room.config_id == config_id)
     result = await db.execute(query)
-    data = result.scalars().all()
-    _cache_set(cache_key, data)
-    return data
+    return result.scalars().all()
 
 @app.put("/api/rooms/{room_id}", response_model=schemas.RoomOut)
 async def update_room(room_id: int, data: schemas.RoomUpdate, db: AsyncSession = Depends(get_db)):

@@ -6,3 +6,4 @@ aiosqlite
 python-dotenv
 pydantic
 openpyxl
+fastapi-cache2
