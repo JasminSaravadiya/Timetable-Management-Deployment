@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# NOTE: To use Supabase connection pooling effectively, the DATABASE_URL
+# environment variable must use the Supabase Transaction pooler port (6543)
+# instead of the default session port (5432).
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Debug log (temporary) – helps verify connection on Render

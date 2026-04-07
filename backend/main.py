@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sa_delete
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta, date, time
 import time as _time
@@ -81,7 +82,7 @@ async def read_configs(db: AsyncSession = Depends(get_db)):
     cached = _cache_get("configs")
     if cached is not None:
         return cached
-    result = await db.execute(select(models.TimetableConfig))
+    result = await db.execute(select(models.TimetableConfig).options(selectinload(models.TimetableConfig.allocations)))
     data = result.scalars().all()
     _cache_set("configs", data)
     return data
@@ -147,7 +148,7 @@ async def read_branches(config_id: Optional[int] = Query(None), db: AsyncSession
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
-    query = select(models.Branch)
+    query = select(models.Branch).options(selectinload(models.Branch.semesters))
     if config_id is not None:
         query = query.filter(models.Branch.config_id == config_id)
     result = await db.execute(query)
@@ -231,7 +232,10 @@ async def read_semesters(config_id: Optional[int] = Query(None), db: AsyncSessio
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
-    query = select(models.Semester)
+    query = select(models.Semester).options(
+        selectinload(models.Semester.branch),
+        selectinload(models.Semester.subjects)
+    )
     if config_id is not None:
         query = query.filter(models.Semester.config_id == config_id)
     result = await db.execute(query)
@@ -303,7 +307,7 @@ async def read_subjects(semester_id: Optional[int] = Query(None), config_id: Opt
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
-    query = select(models.Subject)
+    query = select(models.Subject).options(selectinload(models.Subject.semester))
     if semester_id is not None:
         query = query.filter(models.Subject.semester_id == semester_id)
     if config_id is not None:
@@ -628,7 +632,7 @@ async def read_allocations(config_id: Optional[int] = Query(None), db: AsyncSess
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
-    query = select(models.Allocation)
+    query = select(models.Allocation).options(selectinload(models.Allocation.config))
     if config_id is not None:
         query = query.filter(models.Allocation.config_id == config_id)
     result = await db.execute(query)
