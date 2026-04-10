@@ -58,78 +58,38 @@ def _cache_invalidate():
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-        # Detect dialect to use correct column type
-        dialect = engine.dialect.name  # "postgresql" or "sqlite"
-        col_type = "TIMESTAMP" if dialect == "postgresql" else "DATETIME"
         try:
-            await conn.execute(text(f"ALTER TABLE timetable_configs ADD COLUMN updated_at {col_type} DEFAULT CURRENT_TIMESTAMP"))
-            logger.info("Added updated_at column to timetable_configs")
-        except Exception as e:
-            logger.debug(f"updated_at column likely already exists: {e}")
+            await conn.execute(text("ALTER TABLE timetable_configs ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+        except Exception:
             pass
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Master Timetable API"}
 
-@app.get("/api/health")
-async def health_check(db: AsyncSession = Depends(get_db)):
-    """Diagnostic endpoint to check DB connectivity and schema."""
-    info = {"status": "ok", "dialect": engine.dialect.name}
-    try:
-        # Check if we can connect
-        result = await db.execute(text("SELECT 1"))
-        info["db_connected"] = True
-
-        # Check timetable_configs columns
-        if engine.dialect.name == "postgresql":
-            cols = await db.execute(text(
-                "SELECT column_name, data_type FROM information_schema.columns "
-                "WHERE table_name = 'timetable_configs' ORDER BY ordinal_position"
-            ))
-        else:
-            cols = await db.execute(text("PRAGMA table_info(timetable_configs)"))
-        info["columns"] = [dict(row._mapping) for row in cols]
-
-        # Try a simple count
-        count = await db.execute(text("SELECT COUNT(*) FROM timetable_configs"))
-        info["config_count"] = count.scalar()
-    except Exception as e:
-        info["status"] = "error"
-        info["error"] = str(e)
-    return info
-
 # ═══════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════
 @app.post("/api/config", response_model=schemas.ConfigOut)
 async def create_config(config: schemas.ConfigCreate, db: AsyncSession = Depends(get_db)):
-    try:
-        config_dict = config.model_dump()
-        config_dict['breaks'] = [b.model_dump(mode='json') for b in config.breaks]
-        db_config = models.TimetableConfig(**config_dict)
-        db.add(db_config)
-        await db.commit()
-        await db.refresh(db_config)
-        _cache_invalidate()
-        return db_config
-    except Exception as e:
-        logger.error(f"Error creating config: {e}", exc_info=True)
-        raise
+    config_dict = config.model_dump()
+    config_dict['breaks'] = [b.model_dump(mode='json') for b in config.breaks]
+    db_config = models.TimetableConfig(**config_dict)
+    db.add(db_config)
+    await db.commit()
+    await db.refresh(db_config)
+    _cache_invalidate()
+    return db_config
 
 @app.get("/api/config", response_model=List[schemas.ConfigOut])
 async def read_configs(db: AsyncSession = Depends(get_db)):
-    try:
-        cached = _cache_get("configs")
-        if cached is not None:
-            return cached
-        result = await db.execute(select(models.TimetableConfig).options(selectinload(models.TimetableConfig.allocations)))
-        data = result.scalars().all()
-        _cache_set("configs", data)
-        return data
-    except Exception as e:
-        logger.error(f"Error reading configs: {e}", exc_info=True)
-        raise
+    cached = _cache_get("configs")
+    if cached is not None:
+        return cached
+    result = await db.execute(select(models.TimetableConfig).options(selectinload(models.TimetableConfig.allocations)))
+    data = result.scalars().all()
+    _cache_set("configs", data)
+    return data
 
 @app.put("/api/config/{config_id}", response_model=schemas.ConfigOut)
 async def update_config(config_id: int, data: schemas.ConfigUpdate, db: AsyncSession = Depends(get_db)):
