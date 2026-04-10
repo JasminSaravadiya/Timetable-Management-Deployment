@@ -467,7 +467,7 @@ export default function Configuration() {
                         onBlur={handleInlineEdit}
                         style={{ ...inputStyle, fontSize: 12, padding: '4px 8px', flexGrow: 1 }} />
                     ) : (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default', wordBreak: 'break-word' }}>
                         {branch.name}
                         {branch.id < 0 && (
                           <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6 }}>unsaved</span>
@@ -515,7 +515,7 @@ export default function Configuration() {
                           onBlur={handleInlineEdit} onClick={e => e.stopPropagation()}
                           style={{ ...inputStyle, fontSize: 11, padding: '3px 6px', flexGrow: 1 }} />
                       ) : (
-                        <span style={{ fontSize: 12, fontWeight: 500, color: selectedSemId === sem.id ? '#E5E7EB' : '#9CA3AF', flexGrow: 1 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: selectedSemId === sem.id ? '#E5E7EB' : '#9CA3AF', flexGrow: 1, wordBreak: 'break-word' }}>
                           {branch.name} {sem.name}
                         </span>
                       )}
@@ -538,8 +538,17 @@ export default function Configuration() {
             {/* Back to Home */}
             <button
               id="btn-back-home"
-              onClick={() => {
-                if (hasPendingChanges() && !confirm('You have unsaved changes. Leave without saving?')) return;
+              disabled={isFlushing}
+              onClick={async () => {
+                if (hasPendingChanges()) {
+                   if (!currentConfig?.id) return;
+                   const result = await flushToApi(currentConfig.id);
+                   if (!result.success) {
+                     alert(result.error || 'Failed to save.');
+                     return;
+                   }
+                   invalidateCache();
+                }
                 navigate('/');
               }}
               style={{
@@ -551,62 +560,45 @@ export default function Configuration() {
                 color: '#9CA3AF',
                 fontWeight: 600,
                 fontSize: 13,
-                cursor: 'pointer',
+                cursor: isFlushing ? 'wait' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                opacity: isFlushing ? 0.7 : 1,
                 gap: 6,
                 transition: 'all 0.15s ease',
                 fontFamily: "'Inter', sans-serif",
               }}
               onMouseEnter={(e) => {
+                if(isFlushing) return;
                 (e.currentTarget as HTMLElement).style.background = '#2E3345';
                 (e.currentTarget as HTMLElement).style.color = '#E5E7EB';
               }}
               onMouseLeave={(e) => {
+                if(isFlushing) return;
                 (e.currentTarget as HTMLElement).style.background = '#262A36';
                 (e.currentTarget as HTMLElement).style.color = '#9CA3AF';
               }}
             >
-              ← Back to Home
+              {isFlushing ? 'Saving...' : '← Back to Home'}
             </button>
 
-            {/* 💾 Save All — visible when there are pending changes */}
-            {hasPendingChanges() && (
-              <button
-                id="btn-save-all"
-                className="save-all-btn"
-                disabled={isFlushing}
-                onClick={async () => {
-                  if (!currentConfig?.id) return;
-                  const result = await flushToApi(currentConfig.id);
-                  if (result.success) {
-                    showSaved();
-                    // Refresh data from server to get real IDs
-                    invalidateCache();
-                    await fetchAll();
-                  } else {
-                    showError();
-                    alert(result.error || 'Some changes failed to save.');
-                    // Still refresh to sync whatever did save
-                    invalidateCache();
-                    await fetchAll();
-                  }
-                }}
-              >
-                {isFlushing ? (
-                  <><span className="delete-spinner" style={{ width: 14, height: 14 }} /> Saving...</>
-                ) : (
-                  <>💾 Save All <span className="pending-badge">{pendingCount()}</span></>
-                )}
-              </button>
-            )}
+
 
             {/* Next */}
             <button
               id="btn-next-grid"
-              onClick={() => {
-                if (hasPendingChanges() && !confirm('You have unsaved changes. Continue without saving?')) return;
+              disabled={isFlushing}
+              onClick={async () => {
+                if (hasPendingChanges()) {
+                   if (!currentConfig?.id) return;
+                   const result = await flushToApi(currentConfig.id);
+                   if (!result.success) {
+                     alert(result.error || 'Failed to save.');
+                     return;
+                   }
+                   invalidateCache();
+                }
                 navigate('/grid');
               }}
               className="btn-primary"
@@ -615,9 +607,11 @@ export default function Configuration() {
                 padding: '12px 0',
                 borderRadius: 12,
                 position: 'relative',
+                opacity: isFlushing ? 0.7 : 1,
+                cursor: isFlushing ? 'wait' : 'pointer',
               }}
             >
-              Next →
+              {isFlushing ? 'Saving...' : 'Next →'}
             </button>
           </div>
         </div>
@@ -875,6 +869,45 @@ export default function Configuration() {
             </div>
           </div>
         )}
+        {/* Floating Save All Button */}
+        {hasPendingChanges() && (
+          <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <button
+              className="save-all-btn"
+              disabled={isFlushing}
+              style={{ width: 'auto', padding: '14px 32px', fontSize: 16, borderRadius: 30, boxShadow: '0 10px 40px rgba(124, 58, 237, 0.6)' }}
+              onClick={async () => {
+                if (!currentConfig?.id) return;
+                const result = await flushToApi(currentConfig.id);
+                if (result.success) {
+                  showSaved();
+                  // Refresh data from server to get real IDs
+                  invalidateCache();
+                  await fetchAll();
+                } else {
+                  showError();
+                  alert(result.error || 'Some changes failed to save.');
+                  // Still refresh to sync whatever did save
+                  invalidateCache();
+                  await fetchAll();
+                }
+              }}
+            >
+              {isFlushing ? (
+                <>
+                  <svg className="animate-spin" style={{ width: 20, height: 20, marginRight: 8, color: '#fff' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>💾 Save All Changes <span className="pending-badge" style={{ marginLeft: 8 }}>{pendingCount()}</span></>
+              )}
+            </button>
+          </div>
+        )}
+
       </div>
     </DndContext>
   );
@@ -1002,7 +1035,9 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
           }}>
             <div>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#A3E635' }}>{fac.name}</span>
-              <p style={{ fontSize: 10, color: '#9CA3AF', margin: '2px 0 0' }}>Remaining Workload</p>
+              <p style={{ fontSize: 10, color: '#9CA3AF', margin: '2px 0 0' }}>
+                Remaining Workload: {Math.floor(fac.weekly_workload_minutes / 60)}:{('0' + (fac.weekly_workload_minutes % 60)).slice(-2)} hrs
+              </p>
             </div>
             <button onClick={() => onUnmap(fac.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }} title="Unmap faculty">✕</button>
           </div>
