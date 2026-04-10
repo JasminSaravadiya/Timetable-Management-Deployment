@@ -7,6 +7,7 @@ import { parse, addMinutes, isBefore, format } from 'date-fns';
 import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 import { useLoading } from '../contexts/LoadingContext';
+import { usePendingChanges } from '../store/usePendingChanges';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 /* Pastel subject block colors for the dark theme */
@@ -23,18 +24,41 @@ export default function MasterGrid() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
   const { withLoading } = useLoading();
+  const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi } = usePendingChanges();
 
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
-  const [allocations, setAllocations] = useState([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
 
   const [subjects, setSubjects] = useState([]); // Global fetch for dropdowns
   const [faculties, setFaculties] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  // Save status for flush feedback
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+  const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showSaved = () => { setSaveStatus('saved'); if (saveTimerRef.current) clearTimeout(saveTimerRef.current); saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000); };
+  const showError = () => { setSaveStatus('error'); if (saveTimerRef.current) clearTimeout(saveTimerRef.current); saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000); };
+
+  // Temp ID for local allocations
+  const tempIdCounter = React.useRef(-1);
+  const nextTempId = () => tempIdCounter.current--;
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: string, time: string, semId: number, allocationId?: number } | null>(null);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasPendingChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasPendingChanges]);
 
 
   useEffect(() => {
@@ -112,13 +136,12 @@ export default function MasterGrid() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteAllocation = async (id: number) => {
+  const handleDeleteAllocation = (id: number) => {
     if (!confirm('Remove this allocation?')) return;
-    await withLoading(async () => {
-      await axios.delete(`${API_URL}/allocations/${id}`);
-      invalidateCache();
-      await loadAllocations();
-    }, 'Removing allocation...');
+    setAllocations(prev => prev.filter((a: any) => a.id !== id));
+    if (id > 0) {
+      addOp({ type: 'delete', entity: 'allocations', entityId: id });
+    }
   };
 
   return (
@@ -133,9 +156,56 @@ export default function MasterGrid() {
             {currentConfig?.start_time} - {currentConfig?.end_time} • {currentConfig?.slot_duration_minutes}m slots
           </p>
         </div>
-        <div className="flex gap-4">
-          <button onClick={() => navigate('/configure')} className="btn-primary">⚙ Data</button>
-          <button onClick={() => navigate('/export')} className="btn-primary">Export &rarr;</button>
+        <div className="flex gap-4 items-center">
+          {/* Save status feedback */}
+          {saveStatus !== 'idle' && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
+              animation: 'fadeIn 0.2s ease',
+              ...(saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
+                  { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
+            }}>
+              {saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
+            </span>
+          )}
+
+          {/* 💾 Save All button — visible when there are pending changes */}
+          {hasPendingChanges() && (
+            <button
+              id="btn-grid-save-all"
+              className="save-all-header-btn"
+              disabled={isFlushing}
+              onClick={async () => {
+                if (!currentConfig?.id) return;
+                const result = await flushToApi(currentConfig.id);
+                if (result.success) {
+                  showSaved();
+                  invalidateCache();
+                  await loadAllocations();
+                } else {
+                  showError();
+                  alert(result.error || 'Some changes failed to save.');
+                  invalidateCache();
+                  await loadAllocations();
+                }
+              }}
+            >
+              {isFlushing ? (
+                <><span className="delete-spinner" style={{ width: 14, height: 14 }} /> Saving...</>
+              ) : (
+                <>💾 Save All <span className="pending-badge">{pendingCount()}</span></>
+              )}
+            </button>
+          )}
+
+          <button onClick={() => {
+            if (hasPendingChanges() && !confirm('You have unsaved changes. Leave without saving?')) return;
+            navigate('/configure');
+          }} className="btn-primary">⚙ Data</button>
+          <button onClick={() => {
+            if (hasPendingChanges() && !confirm('You have unsaved changes. Leave without saving?')) return;
+            navigate('/export');
+          }} className="btn-primary">Export &rarr;</button>
         </div>
       </div>
 
@@ -308,7 +378,29 @@ export default function MasterGrid() {
         <AllocationModal
           cell={selectedCell}
           onClose={() => { setIsModalOpen(false); setSelectedCell(null); }}
-          onSuccess={() => { setIsModalOpen(false); setSelectedCell(null); invalidateCache(); loadAllocations(); }}
+          onSaveLocal={(allocation: any, isEdit: boolean) => {
+            if (isEdit) {
+              setAllocations(prev => prev.map((a: any) => a.id === allocation.id ? allocation : a));
+              if (allocation.id > 0) {
+                addOp({ type: 'update', entity: 'allocations', entityId: allocation.id, data: allocation });
+              }
+            } else {
+              const tempId = nextTempId();
+              const newAlloc = { ...allocation, id: tempId };
+              setAllocations(prev => [...prev, newAlloc]);
+              addOp({ type: 'create', entity: 'allocations', tempId, data: allocation });
+            }
+            setIsModalOpen(false);
+            setSelectedCell(null);
+          }}
+          onDeleteLocal={(id: number) => {
+            setAllocations(prev => prev.filter((a: any) => a.id !== id));
+            if (id > 0) {
+              addOp({ type: 'delete', entity: 'allocations', entityId: id });
+            }
+            setIsModalOpen(false);
+            setSelectedCell(null);
+          }}
           allocations={allocations}
         />
       )}
@@ -319,7 +411,7 @@ export default function MasterGrid() {
 }
 
 // Subcomponent for Allocation
-function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any, onClose: any, onSuccess: any, allocations: any[] }) {
+function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocations }: { cell: any, onClose: any, onSaveLocal: (allocation: any, isEdit: boolean) => void, onDeleteLocal: (id: number) => void, allocations: any[] }) {
   const { currentConfig } = useStore();
   const isEditing = !!cell.allocationId;
   const existingAlloc = isEditing ? allocations.find((a: any) => a.id === cell.allocationId) : null;
@@ -357,27 +449,18 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
     setAllocationData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!isEditing) return;
     if (!confirm('Are you sure you want to delete this allocation?')) return;
-    setLoading(true);
-    try {
-      await axios.delete(`${API_URL}/allocations/${cell.allocationId}`);
-      onSuccess();
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.detail || 'Failed to delete allocation');
-      setLoading(false);
-    }
+    onDeleteLocal(cell.allocationId);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg('');
 
     if (!allocationData.subject_id || !allocationData.faculty_id || !allocationData.room_id || !allocationData.duration_minutes) {
       setErrorMsg('Please fill all required fields.');
-      setLoading(false);
       return;
     }
 
@@ -398,35 +481,24 @@ function AllocationModal({ cell, onClose, onSuccess, allocations }: { cell: any,
         const hh = Math.floor(remGlobal / 60).toString().padStart(2, '0');
         const mm = (remGlobal % 60).toString().padStart(2, '0');
         setErrorMsg(`Workload exceeded for ${selectedFac.name}. Only ${hh}:${mm} total remaining.`);
-        setLoading(false);
         return;
       }
     }
 
-    try {
-      const payload = {
-        config_id: currentConfig?.id,
-        semester_id: cell.semId,
-        subject_id: parseInt(allocationData.subject_id as string),
-        faculty_id: parseInt(allocationData.faculty_id as string),
-        room_id: parseInt(allocationData.room_id as string),
-        day_of_week: cell.day,
-        start_time: cell.time,
-        duration_minutes: parseInt(allocationData.duration_minutes as string),
-        batches: allocationData.batches_input ? allocationData.batches_input.split(',').map((b: string) => b.trim()).filter((b: string) => b) : []
-      };
+    const allocation = {
+      ...(isEditing ? { id: cell.allocationId } : {}),
+      config_id: currentConfig?.id,
+      semester_id: cell.semId,
+      subject_id: parseInt(allocationData.subject_id as string),
+      faculty_id: parseInt(allocationData.faculty_id as string),
+      room_id: parseInt(allocationData.room_id as string),
+      day_of_week: cell.day,
+      start_time: cell.time,
+      duration_minutes: parseInt(allocationData.duration_minutes as string),
+      batches: allocationData.batches_input ? allocationData.batches_input.split(',').map((b: string) => b.trim()).filter((b: string) => b) : []
+    };
 
-      if (isEditing) {
-        await axios.put(`${API_URL}/allocations/${cell.allocationId}`, payload);
-      } else {
-        await axios.post(`${API_URL}/allocations`, payload);
-      }
-      onSuccess();
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.detail || 'Failed to allocate. Check for conflicts.');
-    } finally {
-      setLoading(false);
-    }
+    onSaveLocal(allocation, isEditing);
   };
 
   return (

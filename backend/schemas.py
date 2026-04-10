@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import time
+from datetime import time, datetime
 
 class BreakSlot(BaseModel):
     start_time: time
@@ -16,8 +16,12 @@ class ConfigBase(BaseModel):
 class ConfigCreate(ConfigBase):
     pass
 
+class ConfigUpdate(BaseModel):
+    name: Optional[str] = None
+
 class ConfigOut(ConfigBase):
     id: int
+    updated_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 

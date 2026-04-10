@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete as sa_delete
+from sqlalchemy import select, delete as sa_delete, text
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta, date, time
@@ -58,6 +58,10 @@ def _cache_invalidate():
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+        try:
+            await conn.execute(text("ALTER TABLE timetable_configs ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+        except Exception:
+            pass
 
 @app.get("/")
 def read_root():
@@ -86,6 +90,20 @@ async def read_configs(db: AsyncSession = Depends(get_db)):
     data = result.scalars().all()
     _cache_set("configs", data)
     return data
+
+@app.put("/api/config/{config_id}", response_model=schemas.ConfigOut)
+async def update_config(config_id: int, data: schemas.ConfigUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.TimetableConfig).filter(models.TimetableConfig.id == config_id))
+    config = result.scalars().first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(config, k, v)
+    # The updated_at field will be updated automatically by SQLAlchemy onupdate
+    await db.commit()
+    await db.refresh(config)
+    _cache_invalidate()
+    return config
 
 @app.delete("/api/config/{config_id}")
 async def delete_config(config_id: int, db: AsyncSession = Depends(get_db)):

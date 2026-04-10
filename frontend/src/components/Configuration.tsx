@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { API_URL } from '../config';
 import { fetchConfigData, invalidateCache } from '../apiCache';
+import { usePendingChanges } from '../store/usePendingChanges';
 
 /* ═══════════════════════════════════════════════════════
    SHARED STYLES
@@ -87,8 +88,9 @@ const minsToTime = (mins: number) => {
 };
 
 export default function Configuration() {
-  const { currentConfig } = useStore();
+  const { currentConfig, setConfig } = useStore();
   const navigate = useNavigate();
+  const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi, clearOps } = usePendingChanges();
 
   // Data state
   const [branches, setBranches] = useState<any[]>([]);
@@ -97,19 +99,10 @@ export default function Configuration() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
 
-  // Track branches that are currently being saved (pending backend response)
-  const [savingBranchIds, setSavingBranchIds] = useState<Set<number>>(new Set());
-  const isBranchPending = (branchId: number) => savingBranchIds.has(branchId);
-
-  // Save status indicator
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  // Save status after flush
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Navigation-after-save state (for when user clicks Next while saving)
-  const [pendingNavigate, setPendingNavigate] = useState(false);
-  const isSaving = saveStatus === 'saving';
-
-  const showSaving = () => setSaveStatus('saving');
   const showSaved = () => {
     setSaveStatus('saved');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -121,13 +114,17 @@ export default function Configuration() {
     saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
-  // Auto-navigate to /grid once a pending save completes
+  // Warn before leaving with unsaved changes
   useEffect(() => {
-    if (!isSaving && pendingNavigate) {
-      setPendingNavigate(false);
-      navigate('/grid');
-    }
-  }, [isSaving, pendingNavigate]);
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasPendingChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasPendingChanges]);
 
   // Temp ID counter for optimistic inserts (negative to avoid collisions with DB IDs)
   const tempIdCounter = React.useRef(-1);
@@ -140,6 +137,28 @@ export default function Configuration() {
 
   // Inline edit
   const [editingItem, setEditingItem] = useState<{ type: string; id: number; field: string; value: string } | null>(null);
+
+  // Timetable Renaming
+  const [editingConfigName, setEditingConfigName] = useState(false);
+  const [configName, setConfigName] = useState(currentConfig?.name || 'Timetable');
+
+  useEffect(() => {
+    setConfigName(currentConfig?.name || 'Timetable');
+  }, [currentConfig?.name]);
+
+  const saveConfigName = () => {
+    if (!currentConfig?.id) return;
+    setConfig({ ...currentConfig, name: configName });
+    setEditingConfigName(false);
+    addOp({ type: 'update', entity: 'branches' as any, entityId: currentConfig.id, data: { name: configName } });
+    // Note: config rename is handled inline via direct API call since it's metadata
+    axios.put(`${API_URL}/config/${currentConfig.id}`, { name: configName })
+      .then(() => invalidateCache())
+      .catch((err: any) => {
+        const detail = err.response?.data?.detail || err.message || 'Unknown error';
+        alert('Failed to rename timetable: ' + detail);
+      });
+  };
 
   // Add modals
   const [addBranchName, setAddBranchName] = useState('');
@@ -196,27 +215,11 @@ export default function Configuration() {
     }
     const tempId = nextTempId();
     setBranches(prev => [...prev, { id: tempId, name, config_id: currentConfig.id }]);
-    setSavingBranchIds(prev => new Set(prev).add(tempId));
-    setAddBranchName(''); showSaving();
-    axios.post(`${API_URL}/branches`, { name, config_id: currentConfig.id })
-      .then(res => {
-        setBranches(prev => prev.map(b => b.id === tempId ? res.data : b));
-        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
-        invalidateCache(); showSaved();
-      })
-      .catch(err => {
-        setBranches(prev => prev.filter(b => b.id !== tempId));
-        setSavingBranchIds(prev => { const next = new Set(prev); next.delete(tempId); return next; });
-        showError(); alert(err.response?.data?.detail || 'Failed to add branch');
-      });
+    setAddBranchName('');
+    addOp({ type: 'create', entity: 'branches', tempId, data: { name, config_id: currentConfig.id } });
   };
 
   const handleAddSemester = (branchId: number) => {
-    // Block semester creation if the parent branch hasn't been saved yet
-    if (isBranchPending(branchId)) {
-      alert('Please wait — this branch is still being saved. Try again in a moment.');
-      return;
-    }
     const name = addSemName.trim();
     if (!name || !currentConfig) return;
     if (semesters.some((s: any) => s.branch_id === branchId && s.name.toLowerCase() === name.toLowerCase())) {
@@ -224,10 +227,8 @@ export default function Configuration() {
     }
     const tempId = nextTempId();
     setSemesters(prev => [...prev, { id: tempId, name, branch_id: branchId, config_id: currentConfig.id }]);
-    setAddSemName(''); setShowAddSem(null); showSaving();
-    axios.post(`${API_URL}/semesters`, { name, branch_id: branchId, config_id: currentConfig.id })
-      .then(res => { setSemesters(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
-      .catch(err => { setSemesters(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add semester'); });
+    setAddSemName(''); setShowAddSem(null);
+    addOp({ type: 'create', entity: 'semesters', tempId, data: { name, branch_id: branchId, config_id: currentConfig.id } });
   };
 
   const handleAddFaculty = () => {
@@ -239,10 +240,8 @@ export default function Configuration() {
     const mins = timeToMins(addFacultyWorkload);
     const tempId = nextTempId();
     setFaculties(prev => [...prev, { id: tempId, name, weekly_workload_minutes: mins, config_id: currentConfig.id, ignore_collision: false }]);
-    setAddFacultyName(''); setAddFacultyWorkload('04:00'); showSaving();
-    axios.post(`${API_URL}/faculties`, { name, weekly_workload_minutes: mins, config_id: currentConfig.id })
-      .then(res => { setFaculties(prev => prev.map(f => f.id === tempId ? res.data : f)); invalidateCache(); showSaved(); })
-      .catch(err => { setFaculties(prev => prev.filter(f => f.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add faculty'); });
+    setAddFacultyName(''); setAddFacultyWorkload('04:00');
+    addOp({ type: 'create', entity: 'faculties', tempId, data: { name, weekly_workload_minutes: mins, config_id: currentConfig.id } });
   };
 
   const handleAddSubject = () => {
@@ -254,10 +253,8 @@ export default function Configuration() {
     const hours = parseFloat(addSubjectHours) || 4;
     const tempId = nextTempId();
     setSubjects(prev => [...prev, { id: tempId, name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id }]);
-    setAddSubjectName(''); setAddSubjectHours('4'); showSaving();
-    axios.post(`${API_URL}/subjects`, { name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id })
-      .then(res => { setSubjects(prev => prev.map(s => s.id === tempId ? res.data : s)); invalidateCache(); showSaved(); })
-      .catch(err => { setSubjects(prev => prev.filter(s => s.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add subject'); });
+    setAddSubjectName(''); setAddSubjectHours('4');
+    addOp({ type: 'create', entity: 'subjects', tempId, data: { name, semester_id: selectedSemId, weekly_hours: hours, config_id: currentConfig.id } });
   };
 
   const handleAddRoom = () => {
@@ -269,10 +266,8 @@ export default function Configuration() {
     const cap = parseInt(addRoomCapacity) || 60;
     const tempId = nextTempId();
     setRooms(prev => [...prev, { id: tempId, name, capacity: cap, config_id: currentConfig.id }]);
-    setAddRoomName(''); setAddRoomCapacity('60'); showSaving();
-    axios.post(`${API_URL}/rooms`, { name, capacity: cap, config_id: currentConfig.id })
-      .then(res => { setRooms(prev => prev.map(r => r.id === tempId ? res.data : r)); invalidateCache(); showSaved(); })
-      .catch(err => { setRooms(prev => prev.filter(r => r.id !== tempId)); showError(); alert(err.response?.data?.detail || 'Failed to add room'); });
+    setAddRoomName(''); setAddRoomCapacity('60');
+    addOp({ type: 'create', entity: 'rooms', tempId, data: { name, capacity: cap, config_id: currentConfig.id } });
   };
 
   const handleDelete = (type: string, id: number) => {
@@ -282,50 +277,44 @@ export default function Configuration() {
   const confirmDeletion = async () => {
     if (!confirmDeleteObj) return;
     const { type, id } = confirmDeleteObj;
-    setDeletingItem({ type, id });
-    try {
-      await axios.delete(`${API_URL}/${type}/${id}`);
-      invalidateCache();
 
-      // Immutable state updates instead of fetchAll() to prevent UI instability
-      if (type === 'branches') {
-        const branchSemIds = semesters.filter(s => s.branch_id === id).map(s => s.id);
-        setBranches(prev => prev.filter(b => b.id !== id));
-        setSemesters(prev => prev.filter(s => s.branch_id !== id));
-        setSubjects(prev => prev.filter(sub => !branchSemIds.includes(sub.semester_id)));
-        if (selectedSemId && branchSemIds.includes(selectedSemId)) setSelectedSemId(null);
-      } else if (type === 'semesters') {
-        setSemesters(prev => prev.filter(s => s.id !== id));
-        setSubjects(prev => prev.filter(sub => sub.semester_id !== id));
-        if (selectedSemId === id) setSelectedSemId(null);
-      } else if (type === 'subjects') {
-        setSubjects(prev => prev.filter(s => s.id !== id));
-      } else if (type === 'faculties') {
-        setFaculties(prev => prev.filter(f => f.id !== id));
-        setMappedFaculties(prev => prev.filter((f: any) => f.id !== id));
-      } else if (type === 'rooms') {
-        setRooms(prev => prev.filter(r => r.id !== id));
-      }
-
-      setConfirmDeleteObj(null);
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.detail) {
-        alert(err.response.data.detail);
-      } else {
-        alert("Failed to delete item.");
-      }
-      setConfirmDeleteObj(null);
-    } finally {
-      setDeletingItem(null);
+    // Local state updates — instant UI removal
+    if (type === 'branches') {
+      const branchSemIds = semesters.filter(s => s.branch_id === id).map(s => s.id);
+      setBranches(prev => prev.filter(b => b.id !== id));
+      setSemesters(prev => prev.filter(s => s.branch_id !== id));
+      setSubjects(prev => prev.filter(sub => !branchSemIds.includes(sub.semester_id)));
+      if (selectedSemId && branchSemIds.includes(selectedSemId)) setSelectedSemId(null);
+      // Queue delete for branch (and cascaded children will be handled by backend)
+      addOp({ type: 'delete', entity: 'branches', entityId: id });
+    } else if (type === 'semesters') {
+      setSemesters(prev => prev.filter(s => s.id !== id));
+      setSubjects(prev => prev.filter(sub => sub.semester_id !== id));
+      if (selectedSemId === id) setSelectedSemId(null);
+      addOp({ type: 'delete', entity: 'semesters', entityId: id });
+    } else if (type === 'subjects') {
+      setSubjects(prev => prev.filter(s => s.id !== id));
+      addOp({ type: 'delete', entity: 'subjects', entityId: id });
+    } else if (type === 'faculties') {
+      setFaculties(prev => prev.filter(f => f.id !== id));
+      setMappedFaculties(prev => prev.filter((f: any) => f.id !== id));
+      addOp({ type: 'delete', entity: 'faculties', entityId: id });
+    } else if (type === 'rooms') {
+      setRooms(prev => prev.filter(r => r.id !== id));
+      addOp({ type: 'delete', entity: 'rooms', entityId: id });
     }
+
+    setConfirmDeleteObj(null);
+    setDeletingItem(null);
   };
 
   const handleUnmapFaculty = (facultyId: number) => {
     if (!selectedSemId) return;
-    setMappedFaculties(prev => prev.filter((f: any) => f.id !== facultyId)); // instant
-    axios.delete(`${API_URL}/mappings/faculty/${selectedSemId}/${facultyId}`)
-      .then(() => invalidateCache())
-      .catch(() => { invalidateCache(); fetchAll(); }); // rollback on error
+    setMappedFaculties(prev => prev.filter((f: any) => f.id !== facultyId));
+    // Only queue delete for real (positive) IDs; for temp items the mapping was never saved
+    if (facultyId > 0 && selectedSemId > 0) {
+      addOp({ type: 'delete', entity: 'mappings/faculty' as any, entityId: selectedSemId, data: { faculty_id: facultyId } });
+    }
   };
 
   const handleInlineEdit = () => {
@@ -352,32 +341,20 @@ export default function Configuration() {
     else if (type === 'faculties') applyUpdate(faculties, setFaculties);
     else if (type === 'rooms') applyUpdate(rooms, setRooms);
 
-    // Background save
-    showSaving();
-    let apiCall;
+    // Queue update op (only for real IDs; for temp items, the create op already has the latest data)
+    let updatePayload: any;
     if (type === 'faculties' && field === 'complex') {
       const parsed = JSON.parse(value);
-      apiCall = axios.put(`${API_URL}/${type}/${id}`, { name: parsed.name, weekly_workload_minutes: timeToMins(parsed.workload) });
+      updatePayload = { name: parsed.name, weekly_workload_minutes: timeToMins(parsed.workload) };
     } else if (type === 'faculties' && field === 'ignore_collision') {
-      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: value === 'true' });
+      updatePayload = { [field]: value === 'true' };
     } else {
-      apiCall = axios.put(`${API_URL}/${type}/${id}`, { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value });
+      updatePayload = { [field]: field === 'weekly_hours' || field === 'capacity' ? parseFloat(value) : value };
     }
-    apiCall
-      .then(res => {
-        // Replace with server data to ensure consistency
-        const updated = res.data;
-        if (type === 'branches') setBranches(prev => prev.map(b => b.id === id ? updated : b));
-        else if (type === 'semesters') setSemesters(prev => prev.map(s => s.id === id ? updated : s));
-        else if (type === 'subjects') setSubjects(prev => prev.map(s => s.id === id ? updated : s));
-        else if (type === 'faculties') setFaculties(prev => prev.map(f => f.id === id ? updated : f));
-        else if (type === 'rooms') setRooms(prev => prev.map(r => r.id === id ? updated : r));
-        invalidateCache(); showSaved();
-      })
-      .catch(err => {
-        showError(); invalidateCache(); fetchAll(); // rollback by refetching
-        alert(err.response?.data?.detail || `Failed to update ${type}`);
-      });
+
+    if (id > 0) {
+      addOp({ type: 'update', entity: type as any, entityId: id, data: updatePayload });
+    }
   };
 
   /* ─── Drag handlers ─── */
@@ -390,11 +367,15 @@ export default function Configuration() {
     // Drop on faculty-assigned zone
     if (over.id === 'faculty-drop-zone' && active.id.startsWith('fac-')) {
       const facId = parseInt(active.id.replace('fac-', ''));
-      if (selectedSemId && !mappedFaculties.find((f: any) => f.id === facId)) {
-        await axios.post(`${API_URL}/mappings/faculty`, { semester_id: selectedSemId, faculty_id: facId });
-        invalidateCache();
+      if (selectedSemId) {
         const fac = faculties.find((f: any) => f.id === facId);
-        if (fac) setMappedFaculties(prev => [...prev, fac]);
+        if (!fac) return;
+        
+        // Check if already mapped
+        if (mappedFaculties.some((f: any) => f.id === facId)) return;
+        
+        setMappedFaculties(prev => [...prev, fac]);
+        addOp({ type: 'create', entity: 'mappings/faculty', data: { semester_id: selectedSemId, faculty_id: facId } });
       }
     }
 
@@ -417,19 +398,38 @@ export default function Configuration() {
           {/* Header */}
           <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #2E3345' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#C4B5FD, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {currentConfig?.name || 'Timetable'}
-              </h2>
-              {/* Save status indicator */}
+              {editingConfigName ? (
+                <input
+                  autoFocus
+                  value={configName}
+                  onChange={e => setConfigName(e.target.value)}
+                  onBlur={saveConfigName}
+                  onKeyDown={e => { if (e.key === 'Enter') saveConfigName(); if (e.key === 'Escape') setEditingConfigName(false); }}
+                  style={{ ...inputStyle, fontSize: 16, fontWeight: 800, padding: '4px 8px', margin: 0, width: 'auto', flex: 1 }}
+                />
+              ) : (
+                <h2 
+                  onClick={() => setEditingConfigName(true)}
+                  title="Click to rename"
+                  style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#C4B5FD, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer' }}
+                >
+                  {currentConfig?.name || 'Timetable'}
+                </h2>
+              )}
+              {/* Unsaved changes indicator */}
+              {hasPendingChanges() && (
+                <span className="pending-badge" title={`${pendingCount()} unsaved change(s)`}>
+                  {pendingCount()}
+                </span>
+              )}
               {saveStatus !== 'idle' && (
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
                   animation: 'fadeIn 0.2s ease',
-                  ...(saveStatus === 'saving' ? { color: '#C4B5FD', background: 'rgba(197,186,255,0.12)' } :
-                    saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
+                  ...(saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
                       { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
                 }}>
-                  {saveStatus === 'saving' ? '⏳ Saving...' : saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
+                  {saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
                 </span>
               )}
             </div>
@@ -456,11 +456,10 @@ export default function Configuration() {
               return (
                 <div key={branch.id} style={{ marginBottom: 8 }}>
                   {/* Branch header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${isBranchPending(branch.id) ? '#FDE68A44' : accent + '22'}`, marginBottom: 4, transition: 'border-color 0.3s' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 8, background: `${accent}11`, border: `1px solid ${accent + '22'}`, marginBottom: 4, transition: 'border-color 0.3s' }}>
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: isBranchPending(branch.id) ? '#FDE68A' : accent,
-                      animation: isBranchPending(branch.id) ? 'pulse 1.2s ease-in-out infinite' : 'none',
+                      background: branch.id < 0 ? '#FDE68A' : accent,
                     }} />
                     {editingItem?.type === 'branches' && editingItem.id === branch.id ? (
                       <input autoFocus value={editingItem.value} onChange={e => setEditingItem({ ...editingItem, value: e.target.value })}
@@ -470,25 +469,20 @@ export default function Configuration() {
                     ) : (
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', flexGrow: 1, cursor: 'default' }}>
                         {branch.name}
-                        {isBranchPending(branch.id) && (
-                          <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6, animation: 'pulse 1.2s ease-in-out infinite' }}>Saving…</span>
+                        {branch.id < 0 && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#FDE68A', marginLeft: 6 }}>unsaved</span>
                         )}
                       </span>
                     )}
-                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isBranchPending(branch.id) || isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: (isBranchPending(branch.id) || isItemDeleting('branches', branch.id)) ? 0.3 : 1 }} title="Delete">{isItemDeleting('branches', branch.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
+                    <button onClick={() => setEditingItem({ type: 'branches', id: branch.id, field: 'name', value: branch.name })} disabled={isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('branches', branch.id) ? 0.3 : 1 }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete('branches', branch.id)} disabled={isItemDeleting('branches', branch.id)} style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 10, borderColor: 'transparent', background: 'transparent', color: '#9CA3AF', opacity: isItemDeleting('branches', branch.id) ? 0.3 : 1 }} title="Delete">{isItemDeleting('branches', branch.id) ? <span className="delete-spinner" style={{ width: 12, height: 12 }} /> : '🗑️'}</button>
                     <button
                       onClick={() => {
-                        if (isBranchPending(branch.id)) {
-                          alert('Please wait — this branch is still being saved.');
-                          return;
-                        }
                         setShowAddSem(showAddSem === branch.id ? null : branch.id);
                         setAddSemName('');
                       }}
-                      disabled={isBranchPending(branch.id)}
-                      style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: isBranchPending(branch.id) ? '#9CA3AF44' : accent, cursor: isBranchPending(branch.id) ? 'not-allowed' : 'pointer' }}
-                      title={isBranchPending(branch.id) ? 'Branch is saving...' : 'Add Semester'}
+                      style={{ ...iconBtnStyle, width: 22, height: 22, fontSize: 12, borderColor: 'transparent', background: 'transparent', color: accent, cursor: 'pointer' }}
+                      title="Add Semester"
                     >+</button>
                   </div>
 
@@ -539,12 +533,15 @@ export default function Configuration() {
             )}
           </div>
 
-          {/* Back button + Next button */}
+          {/* Back button + Save All + Next button */}
           <div style={{ padding: '16px', borderTop: '1px solid #2E3345', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* Back to Home */}
             <button
               id="btn-back-home"
-              onClick={() => navigate('/')}
+              onClick={() => {
+                if (hasPendingChanges() && !confirm('You have unsaved changes. Leave without saving?')) return;
+                navigate('/');
+              }}
               style={{
                 width: '100%',
                 padding: '9px 0',
@@ -574,28 +571,53 @@ export default function Configuration() {
               ← Back to Home
             </button>
 
-            {/* Next — handles save-in-progress */}
+            {/* 💾 Save All — visible when there are pending changes */}
+            {hasPendingChanges() && (
+              <button
+                id="btn-save-all"
+                className="save-all-btn"
+                disabled={isFlushing}
+                onClick={async () => {
+                  if (!currentConfig?.id) return;
+                  const result = await flushToApi(currentConfig.id);
+                  if (result.success) {
+                    showSaved();
+                    // Refresh data from server to get real IDs
+                    invalidateCache();
+                    await fetchAll();
+                  } else {
+                    showError();
+                    alert(result.error || 'Some changes failed to save.');
+                    // Still refresh to sync whatever did save
+                    invalidateCache();
+                    await fetchAll();
+                  }
+                }}
+              >
+                {isFlushing ? (
+                  <><span className="delete-spinner" style={{ width: 14, height: 14 }} /> Saving...</>
+                ) : (
+                  <>💾 Save All <span className="pending-badge">{pendingCount()}</span></>
+                )}
+              </button>
+            )}
+
+            {/* Next */}
             <button
               id="btn-next-grid"
               onClick={() => {
-                if (isSaving) {
-                  setPendingNavigate(true); // will auto-navigate after save
-                } else {
-                  navigate('/grid');
-                }
+                if (hasPendingChanges() && !confirm('You have unsaved changes. Continue without saving?')) return;
+                navigate('/grid');
               }}
-              disabled={pendingNavigate}
               className="btn-primary"
               style={{
                 width: '100%',
                 padding: '12px 0',
                 borderRadius: 12,
                 position: 'relative',
-                opacity: pendingNavigate ? 0.8 : 1,
-                cursor: pendingNavigate ? 'wait' : 'pointer',
               }}
             >
-              {isSaving && !pendingNavigate ? '⏳ Saving...' : pendingNavigate ? '⏳ Waiting...' : 'Next →'}
+              Next →
             </button>
           </div>
         </div>
@@ -727,7 +749,9 @@ export default function Configuration() {
 
               {/* Faculty cards */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-                {(showAllFaculty ? faculties : faculties.filter((f: any) => !mappedFaculties.find((mf: any) => mf.id === f.id))).map((fac: any, idx: number) => (
+                {[...(showAllFaculty ? faculties : faculties.filter((f: any) => !mappedFaculties.find((mf: any) => mf.id === f.id)))]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((fac: any, idx: number) => (
                   <DraggableFacultyCard
                     key={fac.id}
                     faculty={fac}
@@ -739,11 +763,10 @@ export default function Configuration() {
                     onEditCancel={() => setEditingItem(null)}
                     onDelete={() => handleDelete('faculties', fac.id)}
                     onToggleCollision={(newVal: boolean) => {
-                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f)); // instant
-                      showSaving();
-                      axios.put(`${API_URL}/faculties/${fac.id}`, { ignore_collision: newVal })
-                        .then(res => { setFaculties(prev => prev.map(f => f.id === fac.id ? res.data : f)); invalidateCache(); showSaved(); })
-                        .catch(() => { setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: !newVal } : f)); showError(); });
+                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f));
+                      if (fac.id > 0) {
+                        addOp({ type: 'update', entity: 'faculties', entityId: fac.id, data: { ignore_collision: newVal } });
+                      }
                     }}
                     isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
                     isDeleting={isItemDeleting('faculties', fac.id)}
@@ -776,7 +799,7 @@ export default function Configuration() {
 
               {/* Room cards */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-                {rooms.map((rm: any, idx: number) => (
+                {[...rooms].sort((a, b) => a.name.localeCompare(b.name)).map((rm: any, idx: number) => (
                   <div key={rm.id} style={{
                     padding: '10px 12px', borderRadius: 8, background: '#1C1F2A', border: '1px solid #2E3345', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, animation: `fadeInUp 0.3s ease ${idx * 0.04}s both`
                   }}>

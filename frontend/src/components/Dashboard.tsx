@@ -427,7 +427,9 @@ export default function Dashboard() {
               </p>
             </div>
           ) : (
-            allConfigs.map((c: Config, i: number) => (
+            [...allConfigs]
+              .sort((a: any, b: any) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
+              .map((c: Config, i: number) => (
               <div
                 key={c.id ?? i}
                 onClick={() => handleLoad(c)}

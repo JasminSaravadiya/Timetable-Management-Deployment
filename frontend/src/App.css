@@ -182,3 +182,145 @@
     border-right-color: var(--border);
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   SAVE ALL BUTTON — Floating batch save
+   ═══════════════════════════════════════════════════════ */
+.save-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  color: #F3F0FF;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  box-shadow:
+    0 4px 20px rgba(124, 58, 237, 0.35),
+    0 0 0 1px rgba(196, 181, 253, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: saveSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.save-all-btn::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(196,181,253,0.4), rgba(167,139,250,0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: saveGlow 2.5s ease-in-out infinite;
+}
+
+.save-all-btn:hover {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  box-shadow:
+    0 6px 28px rgba(124, 58, 237, 0.5),
+    0 0 0 1px rgba(196, 181, 253, 0.15);
+  transform: translateY(-1px);
+}
+
+.save-all-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 10px rgba(124, 58, 237, 0.3),
+    0 0 0 1px rgba(196, 181, 253, 0.08);
+}
+
+.save-all-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+}
+
+/* Pending changes badge */
+.pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #0D0F14;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Pending dot (small indicator) */
+.pending-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #F59E0B;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Header save button (for MasterGrid) */
+.save-all-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  color: #F3F0FF;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: saveSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.save-all-header-btn:hover {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  box-shadow: 0 6px 28px rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+}
+
+.save-all-header-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Animations */
+@keyframes saveSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes saveGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}

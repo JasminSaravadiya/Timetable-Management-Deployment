@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Time, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Time, Boolean, JSON, DateTime
 from sqlalchemy.orm import relationship
+import datetime
 from database import Base
 
 class TimetableConfig(Base):
@@ -10,6 +11,7 @@ class TimetableConfig(Base):
     end_time = Column(Time, nullable=False)
     slot_duration_minutes = Column(Integer, nullable=False)
     breaks = Column(JSON, default=list) # List of {"start_time": "HH:MM", "duration_minutes": int}
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     allocations = relationship("Allocation", back_populates="config")
 
 class Branch(Base):
