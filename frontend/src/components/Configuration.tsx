@@ -370,10 +370,10 @@ export default function Configuration() {
       if (selectedSemId) {
         const fac = faculties.find((f: any) => f.id === facId);
         if (!fac) return;
-        
+
         // Check if already mapped
         if (mappedFaculties.some((f: any) => f.id === facId)) return;
-        
+
         setMappedFaculties(prev => [...prev, fac]);
         addOp({ type: 'create', entity: 'mappings/faculty', data: { semester_id: selectedSemId, faculty_id: facId } });
       }
@@ -396,44 +396,79 @@ export default function Configuration() {
         {/* ════════════ LEFT PANEL — Branch Tree ════════════ */}
         <div style={{ width: 260, minWidth: 260, borderRight: '1px solid #2E3345', background: '#1C1F2A', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #2E3345' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              {editingConfigName ? (
-                <input
-                  autoFocus
-                  value={configName}
-                  onChange={e => setConfigName(e.target.value)}
-                  onBlur={saveConfigName}
-                  onKeyDown={e => { if (e.key === 'Enter') saveConfigName(); if (e.key === 'Escape') setEditingConfigName(false); }}
-                  style={{ ...inputStyle, fontSize: 16, fontWeight: 800, padding: '4px 8px', margin: 0, width: 'auto', flex: 1 }}
-                />
-              ) : (
-                <h2 
-                  onClick={() => setEditingConfigName(true)}
-                  title="Click to rename"
-                  style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#C4B5FD, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer' }}
-                >
-                  {currentConfig?.name || 'Timetable'}
-                </h2>
-              )}
-              {/* Unsaved changes indicator */}
+          <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid #2E3345' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {editingConfigName ? (
+                  <input
+                    autoFocus
+                    value={configName}
+                    onChange={e => setConfigName(e.target.value)}
+                    onBlur={saveConfigName}
+                    onKeyDown={e => { if (e.key === 'Enter') saveConfigName(); if (e.key === 'Escape') setEditingConfigName(false); }}
+                    style={{ ...inputStyle, fontSize: 16, fontWeight: 800, padding: '4px 8px', margin: 0, width: '100px', flex: 1 }}
+                  />
+                ) : (
+                  <h2
+                    onClick={() => setEditingConfigName(true)}
+                    title="Click to rename"
+                    style={{ margin: 0, fontSize: 16, fontWeight: 800, background: 'linear-gradient(#C4B5FD, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer', maxWidth: 100, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  >
+                    {currentConfig?.name || 'Timetable'}
+                  </h2>
+                )}
+                {/* Unsaved changes indicator
+                {hasPendingChanges() && (
+                  <span className="pending-badge" title={`${pendingCount()} unsaved change(s)`}>
+                    {pendingCount()}
+                  </span>
+                )} */}
+              </div>
+
               {hasPendingChanges() && (
-                <span className="pending-badge" title={`${pendingCount()} unsaved change(s)`}>
-                  {pendingCount()}
-                </span>
+                <button
+                  disabled={isFlushing}
+                  onClick={async () => {
+                    if (!currentConfig?.id) return;
+                    const result = await flushToApi(currentConfig.id);
+                    if (result.success) {
+                      showSaved();
+                      invalidateCache();
+                      await fetchAll();
+                    } else {
+                      showError();
+                      alert(result.error || 'Some changes failed to save.');
+                      invalidateCache();
+                      await fetchAll();
+                    }
+                  }}
+                  style={{
+                    background: '#7C3AED', color: '#fff', border: 'none', borderRadius: '6px',
+                    padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: isFlushing ? 'wait' : 'pointer',
+                    opacity: isFlushing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '4px',
+                    boxShadow: '0 0 10px rgba(124, 58, 237, 0.3)', whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#6D28D9')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#7C3AED')}
+                >
+                  {isFlushing ? 'Saving...' : '💾 Save All'}
+                </button>
               )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+              <p style={{ color: '#9CA3AF', fontSize: 11, margin: 0 }}>Screen 2 — Config Data</p>
               {saveStatus !== 'idle' && (
                 <span style={{
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
+                  fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6,
                   animation: 'fadeIn 0.2s ease',
                   ...(saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
-                      { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
+                    { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
                 }}>
                   {saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
                 </span>
               )}
             </div>
-            <p style={{ color: '#9CA3AF', fontSize: 11, margin: '4px 0 0' }}>Screen 2 — Config Data</p>
           </div>
 
           {/* Add Branch */}
@@ -541,13 +576,13 @@ export default function Configuration() {
               disabled={isFlushing}
               onClick={async () => {
                 if (hasPendingChanges()) {
-                   if (!currentConfig?.id) return;
-                   const result = await flushToApi(currentConfig.id);
-                   if (!result.success) {
-                     alert(result.error || 'Failed to save.');
-                     return;
-                   }
-                   invalidateCache();
+                  if (!currentConfig?.id) return;
+                  const result = await flushToApi(currentConfig.id);
+                  if (!result.success) {
+                    alert(result.error || 'Failed to save.');
+                    return;
+                  }
+                  invalidateCache();
                 }
                 navigate('/');
               }}
@@ -570,12 +605,12 @@ export default function Configuration() {
                 fontFamily: "'Inter', sans-serif",
               }}
               onMouseEnter={(e) => {
-                if(isFlushing) return;
+                if (isFlushing) return;
                 (e.currentTarget as HTMLElement).style.background = '#2E3345';
                 (e.currentTarget as HTMLElement).style.color = '#E5E7EB';
               }}
               onMouseLeave={(e) => {
-                if(isFlushing) return;
+                if (isFlushing) return;
                 (e.currentTarget as HTMLElement).style.background = '#262A36';
                 (e.currentTarget as HTMLElement).style.color = '#9CA3AF';
               }}
@@ -591,13 +626,13 @@ export default function Configuration() {
               disabled={isFlushing}
               onClick={async () => {
                 if (hasPendingChanges()) {
-                   if (!currentConfig?.id) return;
-                   const result = await flushToApi(currentConfig.id);
-                   if (!result.success) {
-                     alert(result.error || 'Failed to save.');
-                     return;
-                   }
-                   invalidateCache();
+                  if (!currentConfig?.id) return;
+                  const result = await flushToApi(currentConfig.id);
+                  if (!result.success) {
+                    alert(result.error || 'Failed to save.');
+                    return;
+                  }
+                  invalidateCache();
                 }
                 navigate('/grid');
               }}
@@ -746,26 +781,26 @@ export default function Configuration() {
                 {[...(showAllFaculty ? faculties : faculties.filter((f: any) => !mappedFaculties.find((mf: any) => mf.id === f.id)))]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((fac: any, idx: number) => (
-                  <DraggableFacultyCard
-                    key={fac.id}
-                    faculty={fac}
-                    idx={idx}
-                    editingItem={editingItem}
-                    onEdit={() => setEditingItem({ type: 'faculties', id: fac.id, field: 'complex', value: JSON.stringify({ name: fac.name, workload: minsToTime(fac.weekly_workload_minutes) }) })}
-                    onEditChange={(val: string) => editingItem && setEditingItem({ ...editingItem, value: val })}
-                    onEditSubmit={handleInlineEdit}
-                    onEditCancel={() => setEditingItem(null)}
-                    onDelete={() => handleDelete('faculties', fac.id)}
-                    onToggleCollision={(newVal: boolean) => {
-                      setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f));
-                      if (fac.id > 0) {
-                        addOp({ type: 'update', entity: 'faculties', entityId: fac.id, data: { ignore_collision: newVal } });
-                      }
-                    }}
-                    isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
-                    isDeleting={isItemDeleting('faculties', fac.id)}
-                  />
-                ))}
+                    <DraggableFacultyCard
+                      key={fac.id}
+                      faculty={fac}
+                      idx={idx}
+                      editingItem={editingItem}
+                      onEdit={() => setEditingItem({ type: 'faculties', id: fac.id, field: 'complex', value: JSON.stringify({ name: fac.name, workload: minsToTime(fac.weekly_workload_minutes) }) })}
+                      onEditChange={(val: string) => editingItem && setEditingItem({ ...editingItem, value: val })}
+                      onEditSubmit={handleInlineEdit}
+                      onEditCancel={() => setEditingItem(null)}
+                      onDelete={() => handleDelete('faculties', fac.id)}
+                      onToggleCollision={(newVal: boolean) => {
+                        setFaculties(prev => prev.map(f => f.id === fac.id ? { ...f, ignore_collision: newVal } : f));
+                        if (fac.id > 0) {
+                          addOp({ type: 'update', entity: 'faculties', entityId: fac.id, data: { ignore_collision: newVal } });
+                        }
+                      }}
+                      isMapped={!!mappedFaculties.find((mf: any) => mf.id === fac.id)}
+                      isDeleting={isItemDeleting('faculties', fac.id)}
+                    />
+                  ))}
                 {faculties.length === 0 && (
                   <p style={{ color: '#9CA3AF', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Add your first faculty</p>
                 )}
@@ -869,45 +904,6 @@ export default function Configuration() {
             </div>
           </div>
         )}
-        {/* Floating Save All Button */}
-        {hasPendingChanges() && (
-          <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-            <button
-              className="save-all-btn"
-              disabled={isFlushing}
-              style={{ width: 'auto', padding: '14px 32px', fontSize: 16, borderRadius: 30, boxShadow: '0 10px 40px rgba(124, 58, 237, 0.6)' }}
-              onClick={async () => {
-                if (!currentConfig?.id) return;
-                const result = await flushToApi(currentConfig.id);
-                if (result.success) {
-                  showSaved();
-                  // Refresh data from server to get real IDs
-                  invalidateCache();
-                  await fetchAll();
-                } else {
-                  showError();
-                  alert(result.error || 'Some changes failed to save.');
-                  // Still refresh to sync whatever did save
-                  invalidateCache();
-                  await fetchAll();
-                }
-              }}
-            >
-              {isFlushing ? (
-                <>
-                  <svg className="animate-spin" style={{ width: 20, height: 20, marginRight: 8, color: '#fff' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                <>💾 Save All Changes <span className="pending-badge" style={{ marginLeft: 8 }}>{pendingCount()}</span></>
-              )}
-            </button>
-          </div>
-        )}
-
       </div>
     </DndContext>
   );

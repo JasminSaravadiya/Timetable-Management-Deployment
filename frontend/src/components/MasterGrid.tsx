@@ -163,7 +163,7 @@ export default function MasterGrid() {
               fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
               animation: 'fadeIn 0.2s ease',
               ...(saveStatus === 'saved' ? { color: '#16a34a', background: 'rgba(22,163,74,0.10)' } :
-                  { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
+                { color: '#ef4444', background: 'rgba(239,68,68,0.10)' })
             }}>
               {saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
             </span>
@@ -175,13 +175,13 @@ export default function MasterGrid() {
             disabled={isFlushing}
             onClick={async () => {
               if (hasPendingChanges()) {
-                 if (!currentConfig?.id) return;
-                 const result = await flushToApi(currentConfig.id);
-                 if (!result.success) {
-                   alert(result.error || 'Failed to save.');
-                   return;
-                 }
-                 invalidateCache();
+                if (!currentConfig?.id) return;
+                const result = await flushToApi(currentConfig.id);
+                if (!result.success) {
+                  alert(result.error || 'Failed to save.');
+                  return;
+                }
+                invalidateCache();
               }
               navigate('/configure');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
@@ -191,13 +191,13 @@ export default function MasterGrid() {
             disabled={isFlushing}
             onClick={async () => {
               if (hasPendingChanges()) {
-                 if (!currentConfig?.id) return;
-                 const result = await flushToApi(currentConfig.id);
-                 if (!result.success) {
-                   alert(result.error || 'Failed to save.');
-                   return;
-                 }
-                 invalidateCache();
+                if (!currentConfig?.id) return;
+                const result = await flushToApi(currentConfig.id);
+                if (!result.success) {
+                  alert(result.error || 'Failed to save.');
+                  return;
+                }
+                invalidateCache();
               }
               navigate('/export');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
@@ -327,28 +327,28 @@ export default function MasterGrid() {
                                         {cellAllocs.map((a: any, allocIdx: number) => {
                                           const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
                                           return (
-                                          <div
-                                            key={a.id}
-                                            className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
-                                            style={{
-                                              background: colorScheme.bg,
-                                              border: `1px solid ${colorScheme.border}`,
-                                            }}
-                                            onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
-                                          >
-                                            <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
-                                              {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
+                                            <div
+                                              key={a.id}
+                                              className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
+                                              style={{
+                                                background: colorScheme.bg,
+                                                border: `1px solid ${colorScheme.border}`,
+                                              }}
+                                              onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
+                                            >
+                                              <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
+                                                {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
+                                              </div>
+                                              <div className="text-[#67E8F9] text-xs mt-1 truncate">
+                                                {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
+                                              </div>
+                                              <div className="flex justify-between mt-1 items-center gap-1">
+                                                <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
+                                                  {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
+                                                </span>
+                                                {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
+                                              </div>
                                             </div>
-                                            <div className="text-[#67E8F9] text-xs mt-1 truncate">
-                                              {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
-                                            </div>
-                                            <div className="flex justify-between mt-1 items-center gap-1">
-                                              <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
-                                                {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
-                                              </span>
-                                              {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
-                                            </div>
-                                          </div>
                                           );
                                         })}
                                       </div>
@@ -402,43 +402,6 @@ export default function MasterGrid() {
         />
       )}
 
-
-      {/* Floating Save All Button */}
-      {hasPendingChanges() && (
-        <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-          <button
-            className="save-all-btn"
-            disabled={isFlushing}
-            style={{ width: 'auto', padding: '14px 32px', fontSize: 16, borderRadius: 30, boxShadow: '0 10px 40px rgba(124, 58, 237, 0.6)' }}
-            onClick={async () => {
-              if (!currentConfig?.id) return;
-              const result = await flushToApi(currentConfig.id);
-              if (result.success) {
-                showSaved();
-                invalidateCache();
-                await loadAllocations();
-              } else {
-                showError();
-                alert(result.error || 'Some changes failed to save.');
-                invalidateCache();
-                await loadAllocations();
-              }
-            }}
-          >
-            {isFlushing ? (
-              <>
-                <svg className="animate-spin" style={{ width: 20, height: 20, marginRight: 8, color: '#fff' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </>
-            ) : (
-              <>💾 Save All Changes <span className="pending-badge" style={{ marginLeft: 8 }}>{pendingCount()}</span></>
-            )}
-          </button>
-        </div>
-      )}
 
     </div>
   );
