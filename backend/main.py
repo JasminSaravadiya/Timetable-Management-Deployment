@@ -594,6 +594,7 @@ async def create_allocation(allocation: schemas.AllocationCreate, db: AsyncSessi
     db.add(db_allocation)
     await db.commit()
     await db.refresh(db_allocation)
+    _cache_invalidate()
     return db_allocation
 
 @app.put("/api/allocations/{allocation_id}", response_model=schemas.AllocationOut)
