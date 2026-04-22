@@ -547,11 +547,7 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
           setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching another class at this time.`);
           return;
         }
-        // Semester/Batch Collision
-        if (a.semester_id && a.semester_id === allocation.semester_id) {
-          setErrorMsg(`This Semester/Batch already has a subject scheduled at this time.`);
-          return;
-        }
+
       }
     }
 
