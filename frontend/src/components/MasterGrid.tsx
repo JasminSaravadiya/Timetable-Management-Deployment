@@ -169,7 +169,37 @@ export default function MasterGrid() {
             </span>
           )}
 
-
+          {hasPendingChanges() && (
+            <button
+              disabled={isFlushing}
+              onClick={async () => {
+                if (!currentConfig?.id) return;
+                const result = await flushToApi(currentConfig.id);
+                if (result.success) {
+                  showSaved();
+                  invalidateCache();
+                  await fetchBaseData();
+                  await loadAllocations();
+                } else {
+                  showError();
+                  alert(result.error || 'Some changes failed to save.');
+                  invalidateCache();
+                  await fetchBaseData();
+                  await loadAllocations();
+                }
+              }}
+              style={{
+                background: '#7C3AED', color: '#fff', border: 'none', borderRadius: '12px',
+                padding: '12px 8px', fontSize: '11px', fontWeight: 'bold', cursor: isFlushing ? 'wait' : 'pointer',
+                opacity: isFlushing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '4px',
+                boxShadow: '0 0 10px rgba(124, 58, 237, 0.3)', whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#6D28D9')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#7C3AED')}
+            >
+              {isFlushing ? 'Saving...' : '💾 Save All'}
+            </button>
+          )}
 
           <button
             disabled={isFlushing}
@@ -208,7 +238,7 @@ export default function MasterGrid() {
 
       {/* Scroll Container — this div provides BOTH horizontal and vertical scroll bars */}
       <div
-        className="flex-1 relative p-4 custom-scrollbar"
+        className="flex-1 relative custom-scrollbar"
         style={{ overflow: 'auto', minWidth: 0, minHeight: 0 }}
       >
         {/* Table Wrapper — inline-block + min-width:max-content lets the table expand beyond viewport */}
@@ -264,14 +294,14 @@ export default function MasterGrid() {
                           {isFirstSlotOfDay && (
                             <td
                               rowSpan={daySlots.length}
-                              className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-20 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
+                              className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-10 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
                             >
                               <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
                                 {day.toUpperCase()}
                               </div>
                             </td>
                           )}
-                          <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-20 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
+                          <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
                             {timeObj.display}
                           </td>
 
@@ -321,8 +351,9 @@ export default function MasterGrid() {
                                       <div className="w-full h-full min-h-[60px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <span className="text-[#9CA3AF] font-bold text-xl">+</span>
                                       </div>
-                                    ) : (
-                                      // Split batches horizontally logic handled by flex row if many, or col if full scale
+                                      ) : (
+                                        <>
+                                      {/* Split batches horizontally logic handled by flex row if many, or col if full scale */}
                                       <div className={`flex gap-1 w-full h-full ${cellAllocs.length > 1 ? 'flex-row' : 'flex-col'}`}>
                                         {cellAllocs.map((a: any, allocIdx: number) => {
                                           const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
@@ -352,7 +383,17 @@ export default function MasterGrid() {
                                           );
                                         })}
                                       </div>
-                                    )}
+                                      {/* Hover + indicator for adding another entry */}
+                                          <div 
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                            onClick={(e) => { e.stopPropagation(); handleCellClick(day, time, s.id); }}
+                                          >
+                                            <div className="bg-[#262A36] hover:bg-[#2E3345] rounded-full w-5 h-5 flex items-center justify-center shadow border border-[#2E3345] cursor-pointer" title="Add another allocation">
+                                              <span className="text-[#9CA3AF] font-bold text-xs leading-none">+</span>
+                                            </div>
+                                          </div>
+                                        </>
+                                      )}
                                   </div>
                                 </td>
                               );
@@ -494,6 +535,25 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
       duration_minutes: parseInt(allocationData.duration_minutes as string),
       batches: allocationData.batches_input ? allocationData.batches_input.split(',').map((b: string) => b.trim()).filter((b: string) => b) : []
     };
+
+    // --- Local Collision Check ---
+    const ignoreFacultyCollision = selectedFac?.ignore_collision === true;
+    for (const a of allocations) {
+      if (isEditing && a.id === cell.allocationId) continue;
+
+      if (a.day_of_week === allocation.day_of_week && a.start_time === allocation.start_time) {
+        // Faculty Collision
+        if (!ignoreFacultyCollision && a.faculty_id && a.faculty_id === allocation.faculty_id) {
+          setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching another class at this time.`);
+          return;
+        }
+        // Semester/Batch Collision
+        if (a.semester_id && a.semester_id === allocation.semester_id) {
+          setErrorMsg(`This Semester/Batch already has a subject scheduled at this time.`);
+          return;
+        }
+      }
+    }
 
     onSaveLocal(allocation, isEditing);
   };
