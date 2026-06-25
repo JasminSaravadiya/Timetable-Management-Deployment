@@ -6,6 +6,7 @@ import axios from 'axios';
 import { API_URL } from '../config';
 import { invalidateCache } from '../apiCache';
 import { useLoading } from '../contexts/LoadingContext';
+import { useAuthStore } from '../store/useAuthStore';
 
 /* ────────────────── helpers ────────────────── */
 function formatTime12(t: string): string {
@@ -96,6 +97,7 @@ export default function Dashboard() {
   const { setConfig } = useStore();
   const navigate = useNavigate();
   const { withLoading } = useLoading();
+  const logout = useAuthStore((state) => state.logout);
   const [showModal, setShowModal] = useState(false);
   const [allConfigs, setAllConfigs] = useState<Config[]>([]);
   const [loading, setLoading] = useState(true);
@@ -351,23 +353,51 @@ export default function Dashboard() {
         }}
       >
         {/* Header */}
-        <div style={{ marginBottom: 36 }}>
-          <h2
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
+          <div>
+            <h2
+              style={{
+                fontSize: 32,
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                margin: 0,
+              }}
+            >
+              Recent Saved Timetables
+            </h2>
+            <p style={{ color: '#9CA3AF', marginTop: 8, fontSize: 14 }}>
+              Pick up where you left off, or start something new.
+            </p>
+          </div>
+          <button
+            onClick={logout}
             style={{
-              fontSize: 32,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              margin: 0,
+              padding: '8px 16px',
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: 14,
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)',
+              transition: 'all 0.2s ease',
+              fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.transform = 'translateY(-1px)';
+              (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.35)';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.transform = 'translateY(0)';
+              (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)';
             }}
           >
-            Recent Saved Timetables
-          </h2>
-          <p style={{ color: '#9CA3AF', marginTop: 8, fontSize: 14 }}>
-            Pick up where you left off, or start something new.
-          </p>
+            Logout
+          </button>
         </div>
 
         {/* Timetable cards */}

@@ -1,5 +1,29 @@
 import axios from 'axios';
 import { API_URL } from './config';
+import { useAuthStore } from './store/useAuthStore';
+
+// ─── GLOBAL AXIOS AUTHENTICATION SETUP ──────────────────────────────────────
+// Automatically attach the Bearer token to ALL axios requests app-wide.
+axios.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Automatically log the user out if the backend rejects the token (401).
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.error("Authentication expired or invalid. Logging out.");
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(error);
+  }
+);
+// ────────────────────────────────────────────────────────────────────────────
 
 // In-memory cache with TTL
 const cache: Map<string, { data: any; timestamp: number }> = new Map();
@@ -27,6 +51,8 @@ export function invalidateCache(): void {
 export async function cachedGet(url: string): Promise<any> {
   const cached = getCached(url);
   if (cached !== null) return cached;
+  
+  // Uses the globally configured axios (so it includes the Auth header)
   const res = await axios.get(url);
   setCache(url, res.data);
   return res.data;

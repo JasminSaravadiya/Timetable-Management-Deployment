@@ -8,6 +8,9 @@ from typing import List, Optional
 from datetime import datetime, timedelta, date, time
 import time as _time
 import logging
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+import os
 
 import models
 import schemas
@@ -15,7 +18,56 @@ from database import get_db, engine, Base
 
 logger = logging.getLogger("uvicorn.error")
 
-app = FastAPI(title="Master Timetable Generator API")
+# --- 1. AUTHENTICATION SETUP ---
+# Simple hardcoded credentials (can also be read from .env)
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+AUTH_TOKEN = "simple-static-token-123"
+
+# Tells FastAPI where the token comes from (Authorization header)
+# auto_error=False prevents raising an exception before we can check the path
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False)
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# Dependency to protect your endpoints
+def verify_token(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
+    path = request.url.path
+    if path == "/api/login" or path == "/" or not path.startswith("/api"):
+        return token
+    if not token or token != AUTH_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return token
+
+app = FastAPI(
+    title="Master Timetable Generator API",
+    dependencies=[Depends(verify_token)]
+)
+
+
+# --- 2. LOGIN ENDPOINT ---
+@app.post("/api/login")
+async def login(credentials: LoginRequest):
+    if credentials.username == ADMIN_USERNAME and credentials.password == ADMIN_PASSWORD:
+        return {"access_token": AUTH_TOKEN, "token_type": "bearer"}
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password"
+    )
+
+
+# --- 3. PROTECT YOUR EXISTING ROUTES ---
+# Example: Inject `token: str = Depends(verify_token)` into endpoints you want to secure
+@app.get("/api/timetable")
+async def get_timetable(token: str = Depends(verify_token)):
+    return {"message": "This is protected data"}
 
 # ── GZip compression for all responses ──
 app.add_middleware(GZipMiddleware, minimum_size=500)
