@@ -22,6 +22,8 @@ logger = logging.getLogger("uvicorn.error")
 # Simple hardcoded credentials (can also be read from .env)
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+USER_USERNAME = os.getenv("USER_USERNAME", "user")
+USER_PASSWORD = os.getenv("USER_PASSWORD", "user123")
 AUTH_TOKEN = "simple-static-token-123"
 
 # Tells FastAPI where the token comes from (Authorization header)
@@ -54,7 +56,8 @@ app = FastAPI(
 # --- 2. LOGIN ENDPOINT ---
 @app.post("/api/login")
 async def login(credentials: LoginRequest):
-    if credentials.username == ADMIN_USERNAME and credentials.password == ADMIN_PASSWORD:
+    if (credentials.username == ADMIN_USERNAME and credentials.password == ADMIN_PASSWORD) or \
+       (credentials.username == USER_USERNAME and credentials.password == USER_PASSWORD):
         return {"access_token": AUTH_TOKEN, "token_type": "bearer"}
     
     raise HTTPException(
