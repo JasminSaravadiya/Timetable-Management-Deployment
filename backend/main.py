@@ -966,6 +966,146 @@ def _build_sheet(ws, title: str, allocs, timeslots, all_subjects, all_faculties,
     for r in range(data_start_row, current_row):
         ws.row_dimensions[r].height = 45
 
+def _build_master_sheet(ws, title: str, allocs, timeslots, all_subjects, all_faculties, all_rooms, all_branches, target_semesters, slot_duration: int):
+    """Build a Master-format sheet (Day | Time | Sem1 | Sem2 ...)."""
+    thin = Side(style='thin')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    # Sub/fac/room maps
+    sub_map = {s.id: s.name for s in all_subjects}
+    fac_map = {f.id: f.name for f in all_faculties}
+    rm_map = {r.id: r.name for r in all_rooms}
+    branch_map = {b.id: b.name for b in all_branches}
+
+    # Prepare Columns
+    # Columns are: Day, Time, [Branch Sem]...
+    sem_cols = []
+    for sem in target_semesters:
+        bname = branch_map.get(sem.branch_id, '')
+        sem_cols.append({
+            'id': sem.id,
+            'label': f"{bname} {sem.name}".strip()
+        })
+    
+    total_cols = 2 + len(sem_cols)
+    last_col_letter = get_column_letter(max(total_cols, 1))
+
+    # Row 1: Title
+    ws.merge_cells(f'A1:{last_col_letter}1')
+    ws['A1'] = f'Master Timetable - {title}'
+    ws['A1'].font = Font(bold=True, size=16)
+    ws['A1'].alignment = center
+
+    # Row 2: Headers
+    headers = ['Day', 'Time'] + [c['label'] for c in sem_cols]
+    header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+    header_font_white = Font(bold=True, size=11, color='FFFFFF')
+    
+    for ci, h in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=ci, value=h)
+        cell.font = header_font_white
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+
+    # Build lookup: (day, start_mins, sem_id) -> list of allocations
+    alloc_map = {}
+    for a in allocs:
+        a_start = _time_to_minutes(a.start_time)
+        key = (a.day_of_week, a_start, a.semester_id)
+        alloc_map.setdefault(key, []).append(a)
+
+    current_row = 3
+    merge_ranges = []
+
+    for day in DAYS_ORDER:
+        day_start_row = current_row
+        slot_row_map = {}
+
+        for si, slot in enumerate(timeslots):
+            row = current_row
+            slot_row_map[si] = row
+
+            # Col 1: Day (merged later)
+            cell_day = ws.cell(row=row, column=1, value=day.upper())
+            cell_day.alignment = center
+            cell_day.border = border
+            cell_day.font = Font(bold=True)
+
+            # Col 2: Time
+            cell_time = ws.cell(row=row, column=2, value=slot['display'])
+            cell_time.alignment = center
+            cell_time.border = border
+
+            if slot['type'] == 'break':
+                # Break row: merge all sem cols
+                if len(sem_cols) > 0:
+                    ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=max(total_cols, 3))
+                cell_break = ws.cell(row=row, column=3, value='RECESS')
+                cell_break.alignment = center
+                cell_break.font = Font(bold=True, size=12, color='FF0000')
+                cell_break.fill = PatternFill(start_color='FFF2CC', end_color='FFF2CC', fill_type='solid')
+                cell_break.border = border
+                # Add borders to merged cells
+                for ci in range(3, total_cols + 1):
+                    ws.cell(row=row, column=ci).border = border
+            else:
+                for ci, scol in enumerate(sem_cols):
+                    col_idx = 3 + ci
+                    cell_allocs = alloc_map.get((day, slot['start_mins'], scol['id']), [])
+                    if cell_allocs:
+                        lines = []
+                        for a in cell_allocs:
+                            sub_name = sub_map.get(a.subject_id, '?')
+                            fac_name = fac_map.get(a.faculty_id, '?')
+                            rm_name = rm_map.get(a.room_id, '?')
+                            batches = a.batches or []
+                            if batches:
+                                lines.append(f"{sub_name}\n{fac_name}\n{rm_name} [{','.join(batches)}]")
+                            else:
+                                lines.append(f"{sub_name}\n{fac_name}\n{rm_name}")
+
+                            # Check if this is a multi-slot lab
+                            if a.duration_minutes > slot_duration:
+                                spans = a.duration_minutes // slot_duration
+                                end_slot_idx = si + spans - 1
+                                if end_slot_idx < len(timeslots):
+                                    end_row = slot_row_map.get(si, row) + spans - 1
+                                    merge_ranges.append((row, end_row, col_idx))
+
+                        cell_value = '\n---\n'.join(lines)
+                        cell = ws.cell(row=row, column=col_idx, value=cell_value)
+                    else:
+                        cell = ws.cell(row=row, column=col_idx, value='')
+                    
+                    cell.alignment = center
+                    cell.border = border
+                    cell.font = Font(size=9)
+            
+            current_row += 1
+
+        # Track Day column merge
+        if current_row > day_start_row:
+            merge_ranges.append((day_start_row, current_row - 1, 1))
+
+    # Apply all merges (Labs + Day column)
+    for start_r, end_r, col in merge_ranges:
+        if end_r > start_r:
+            try:
+                ws.merge_cells(start_row=start_r, start_column=col, end_row=end_r, end_column=col)
+            except Exception:
+                pass
+
+    # Set column widths
+    ws.column_dimensions['A'].width = 12
+    ws.column_dimensions['B'].width = 18
+    for ci in range(3, total_cols + 1):
+        ws.column_dimensions[get_column_letter(ci)].width = 24
+
+    # Set row heights (skip header rows)
+    for r in range(3, current_row):
+        ws.row_dimensions[r].height = 60
 
 @app.get("/api/export_excel")
 async def export_excel(
@@ -1000,12 +1140,7 @@ async def export_excel(
 
     if mode == 'master':
         ws = wb.create_sheet(title="Master Timetable"[:31])
-        # For master timetable, we want ONLY master allocs, or all the slots? 
-        # The prompt says: Allocation.query.filter_by(is_master=True)
-        # But wait! We do not have an is_master flag right now on the actual code, 
-        # config isolation handles "Master" vs "Departmental" already for the user if they've designed it that way. 
-        # We'll just pass all_allocations directly as we did before.
-        _build_sheet(ws, "Master Timetable", all_allocations, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+        _build_master_sheet(ws, config.name or "Master", all_allocations, timeslots, all_subjects, all_faculties, all_rooms, all_branches, all_semesters, config.slot_duration_minutes)
         filename = "Master_Timetable.xlsx"
 
     elif mode == 'selected' and value:
@@ -1044,7 +1179,7 @@ async def export_excel(
     elif mode == 'all':
         # Master sheet first
         ws_master = wb.create_sheet(title="Master Timetable"[:31])
-        _build_sheet(ws_master, "Master Timetable", all_allocations, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+        _build_master_sheet(ws_master, "Master Timetable", all_allocations, timeslots, all_subjects, all_faculties, all_rooms, all_branches, all_semesters, config.slot_duration_minutes)
 
         # Branch sheets
         for sem in all_semesters:

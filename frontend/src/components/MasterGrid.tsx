@@ -23,7 +23,7 @@ const SUBJECT_COLORS = [
 export default function MasterGrid() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
-  const { setLoading, withLoading } = useLoading();
+  const { withLoading } = useLoading();
   const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi } = usePendingChanges();
 
   const [branches, setBranches] = useState([]);
@@ -263,23 +263,18 @@ export default function MasterGrid() {
               disabled={isFlushing}
               onClick={async () => {
                 if (!currentConfig?.id) return;
-                setLoading(true, "Saving changes...");
-                try {
-                  const result = await flushToApi(currentConfig.id);
-                  if (result.success) {
-                    showSaved();
-                    invalidateCache();
-                    await fetchBaseData();
-                    await loadAllocations();
-                  } else {
-                    showError();
-                    alert(result.error || 'Some changes failed to save.');
-                    invalidateCache();
-                    await fetchBaseData();
-                    await loadAllocations();
-                  }
-                } finally {
-                  setLoading(false);
+                const result = await flushToApi(currentConfig.id);
+                if (result.success) {
+                  showSaved();
+                  invalidateCache();
+                  await fetchBaseData();
+                  await loadAllocations();
+                } else {
+                  showError();
+                  alert(result.error || 'Some changes failed to save.');
+                  invalidateCache();
+                  await fetchBaseData();
+                  await loadAllocations();
                 }
               }}
               style={{
@@ -300,17 +295,12 @@ export default function MasterGrid() {
             onClick={async () => {
               if (hasPendingChanges()) {
                 if (!currentConfig?.id) return;
-                setLoading(true, "Saving changes...");
-                try {
-                  const result = await flushToApi(currentConfig.id);
-                  if (!result.success) {
-                    alert(result.error || 'Failed to save.');
-                    return;
-                  }
-                  invalidateCache();
-                } finally {
-                  setLoading(false);
+                const result = await flushToApi(currentConfig.id);
+                if (!result.success) {
+                  alert(result.error || 'Failed to save.');
+                  return;
                 }
+                invalidateCache();
               }
               navigate('/configure');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
@@ -321,17 +311,12 @@ export default function MasterGrid() {
             onClick={async () => {
               if (hasPendingChanges()) {
                 if (!currentConfig?.id) return;
-                setLoading(true, "Saving changes...");
-                try {
-                  const result = await flushToApi(currentConfig.id);
-                  if (!result.success) {
-                    alert(result.error || 'Failed to save.');
-                    return;
-                  }
-                  invalidateCache();
-                } finally {
-                  setLoading(false);
+                const result = await flushToApi(currentConfig.id);
+                if (!result.success) {
+                  alert(result.error || 'Failed to save.');
+                  return;
                 }
+                invalidateCache();
               }
               navigate('/export');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
@@ -831,7 +816,7 @@ function AllocationModal({
                     <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.faculty_id} onChange={(e) => handleChange('faculty_id', e.target.value)}>
                       <option value="">Select faculty...</option>
-                      {faculties.map((f: any) => {
+                      {[...faculties].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((f: any) => {
                         const used = [...new Map(
                           allocations
                             .filter((a: any) => a.faculty_id === f.id && (!isEditing || a.id !== cell.allocationId))
@@ -850,7 +835,7 @@ function AllocationModal({
                     <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                       value={allocationData.room_id} onChange={(e) => handleChange('room_id', e.target.value)}>
                       <option value="">Select room...</option>
-                      {rooms.map((r: any) => <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>)}
+                      {[...rooms].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((r: any) => <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>)}
                     </select>
                   </div>
                 </div>

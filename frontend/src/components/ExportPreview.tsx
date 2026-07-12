@@ -9,6 +9,16 @@ import { useLoading } from '../contexts/LoadingContext';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/* Pastel subject block colors for the dark theme */
+const SUBJECT_COLORS = [
+  { bg: 'rgba(196,181,253,0.12)', border: 'rgba(196,181,253,0.3)', text: '#C4B5FD' },   // lavender
+  { bg: 'rgba(163,230,53,0.10)', border: 'rgba(163,230,53,0.25)', text: '#A3E635' },     // mint
+  { bg: 'rgba(103,232,249,0.10)', border: 'rgba(103,232,249,0.25)', text: '#67E8F9' },   // cyan
+  { bg: 'rgba(253,230,138,0.10)', border: 'rgba(253,230,138,0.25)', text: '#FDE68A' },   // yellow
+  { bg: 'rgba(249,168,212,0.10)', border: 'rgba(249,168,212,0.25)', text: '#F9A8D4' },   // pink
+  { bg: 'rgba(110,231,183,0.10)', border: 'rgba(110,231,183,0.25)', text: '#6EE7B7' },   // emerald
+];
+
 export default function ExportPreview() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
@@ -103,9 +113,14 @@ export default function ExportPreview() {
     return [];
   }, [selectedType, semesters, branches, filteredAllocations]);
 
-  // Helper: get allocations for a cell
-  const getCellAllocs = (day: string, time: string, semId: number) => {
+  // Helper: get allocations for a cell (Master view)
+  const getCellAllocsMaster = (day: string, time: string, semId: number) => {
     return filteredAllocations.filter((a: any) => a.day_of_week === day && a.start_time === time && a.semester_id === semId);
+  };
+
+  // Helper: get allocations for a cell (Grid view)
+  const getCellAllocsGrid = (day: string, time: string) => {
+    return filteredAllocations.filter((a: any) => a.day_of_week === day && a.start_time === time);
   };
 
   // Selection label
@@ -233,7 +248,7 @@ export default function ExportPreview() {
 
           {activeTab === 'faculty' && (
             <div className="space-y-1">
-              {faculties.map((f: any) => (
+              {[...faculties].sort((a, b) => a.name.localeCompare(b.name)).map((f: any) => (
                 <button
                   key={f.id}
                   onClick={() => setSelectedType(`faculty:${f.id}`)}
@@ -249,7 +264,7 @@ export default function ExportPreview() {
 
           {activeTab === 'room' && (
             <div className="space-y-1">
-              {rooms.map((r: any) => (
+              {[...rooms].sort((a, b) => a.name.localeCompare(b.name)).map((r: any) => (
                 <button
                   key={r.id}
                   onClick={() => setSelectedType(`room:${r.id}`)}
@@ -297,78 +312,153 @@ export default function ExportPreview() {
             <div className="text-themeTextMuted text-xs mt-1">{selectionLabel} • {currentConfig?.start_time?.slice(0, 5)} – {currentConfig?.end_time?.slice(0, 5)}</div>
           </div>
 
-          <div className="bg-[#2E3345] border border-themeSurface rounded-xl overflow-hidden" style={{ display: 'inline-block', minWidth: '100%' }}>
-            <table className="border-collapse text-xs" style={{ width: 'max-content', minWidth: '100%' }}>
-              <thead>
-                <tr className="bg-themeSurface">
-                  <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[60px] sticky left-0 bg-themeSurface z-10 whitespace-nowrap">Day</th>
-                  <th className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold w-[100px] sticky bg-themeSurface z-10 whitespace-nowrap">Time</th>
-                  {previewColumns.length > 0 ? previewColumns.map((col) => (
-                    <th key={col.id} className="border border-themePrimary p-2 text-themeTextMuted-200 font-bold min-w-[150px] text-center whitespace-nowrap">
-                      {col.label}
-                    </th>
-                  )) : (
-                    <th className="border border-themePrimary p-2 text-themeTextMuted italic whitespace-nowrap">No columns to display</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {DAYS.map((day) => (
-                  <React.Fragment key={day}>
-                    {timeslots.map((slot: any, slotIdx: number) => (
-                      <tr key={`${day}-${slot.start}`} className="bg-[#1C1F2A] hover:bg-[#1C1F2A]/50 transition">
-                        {slotIdx === 0 && (
-                          <td
-                            rowSpan={timeslots.length}
-                            className="border border-themePrimary p-2 text-themePrimary-200 font-bold text-center bg-[#2E3345] sticky left-0 z-10 whitespace-nowrap"
-                            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-                          >
-                            {day.toUpperCase()}
+          <div className="bg-[#1C1F2A] border border-[#2E3345] rounded-xl overflow-hidden shadow-2xl" style={{ display: 'inline-block', minWidth: '100%' }}>
+            {selectedType === 'master' ? (
+              // MASTER VIEW LAYOUT (Day/Time as rows, Semesters as columns)
+              <table className="border-collapse text-xs" style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead className="bg-[#262A36] border-b border-[#2E3345]">
+                  <tr>
+                    <th className="border-r border-[#2E3345] p-2 text-[#E5E7EB] font-bold w-[60px] sticky left-0 bg-[#262A36] z-10 whitespace-nowrap">Day</th>
+                    <th className="border-r border-[#2E3345] p-2 text-[#E5E7EB] font-bold w-[100px] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap shadow-[1px_0_0_0_#2E3345]">Time</th>
+                    {previewColumns.length > 0 ? previewColumns.map((col) => (
+                      <th key={col.id} className="border-r border-[#2E3345] p-2 text-[#C4B5FD] font-bold min-w-[150px] text-center whitespace-nowrap uppercase tracking-wider text-xs">
+                        {col.label}
+                      </th>
+                    )) : (
+                      <th className="border-r border-[#2E3345] p-2 text-[#9CA3AF] italic whitespace-nowrap">No columns to display</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DAYS.map((day) => (
+                    <React.Fragment key={day}>
+                      {timeslots.map((slot: any, slotIdx: number) => (
+                        <tr key={`${day}-${slot.start}`} className="group transition">
+                          {slotIdx === 0 && (
+                            <td
+                              rowSpan={timeslots.length}
+                              className="border border-[#2E3345] p-2 text-[#C4B5FD] font-bold text-center bg-[#262A36] sticky left-0 z-10 whitespace-nowrap uppercase tracking-widest text-sm"
+                              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+                            >
+                              {day}
+                            </td>
+                          )}
+                          <td className="border border-[#2E3345] p-2 text-[#9CA3AF] font-semibold text-center whitespace-nowrap sticky left-[60px] bg-[#262A36] z-10 shadow-[1px_0_0_0_#2E3345]">
+                            {slot.display}
                           </td>
-                        )}
-                        <td className="border border-themePrimary p-2 text-themeTextMuted font-medium text-center whitespace-nowrap sticky bg-themeBg/90">
-                          {slot.display}
-                        </td>
-                        {slot.type === 'break' ? (
-                          <td
-                            colSpan={Math.max(previewColumns.length, 1)}
-                            className="border border-themePrimary bg-themeSurface/40 text-center text-themeTextMuted font-bold tracking-[0.3em] uppercase py-3 whitespace-nowrap"
-                          >
-                            ── BREAK ──
-                          </td>
-                        ) : (
-                          previewColumns.length > 0 ? previewColumns.map((col) => {
-                            const cellAllocs = getCellAllocs(day, slot.start, col.id);
-                            return (
-                              <td key={col.id} className="border border-themePrimary p-1.5 align-top min-h-[40px]">
-                                {cellAllocs.length > 0 ? (
-                                  <div className="space-y-1">
-                                    {cellAllocs.map((a: any) => (
-                                      <div key={a.id} className="bg-[#1C1F2A] border border-themePrimary/50 rounded p-1.5 text-[10px] leading-tight">
-                                        <div className="font-bold text-themePrimary-200 truncate">{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
-                                        <div className="text-themeSecondary truncate">{faculties.find((f: any) => f.id === a.faculty_id)?.name}</div>
-                                        <div className="flex justify-between text-themeTextMuted">
-                                          <span>{rooms.find((r: any) => r.id === a.room_id)?.name}</span>
-                                          {a.batches?.length > 0 && <span className="text-blue-300">{a.batches.join(',')}</span>}
+                          {slot.type === 'break' ? (
+                            <td
+                              colSpan={Math.max(previewColumns.length, 1)}
+                              className="border border-[#2E3345] bg-[#1A1D26] text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase h-[40px] whitespace-nowrap relative overflow-hidden"
+                            >
+                               <div className="absolute inset-0 flex items-center justify-center">
+                                 --------- BREAK ---------
+                               </div>
+                            </td>
+                          ) : (
+                            previewColumns.length > 0 ? previewColumns.map((col) => {
+                              const cellAllocs = getCellAllocsMaster(day, slot.start, col.id);
+                              return (
+                                <td key={col.id} className="border border-[#2E3345] p-1.5 align-top min-h-[40px] bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors">
+                                  {cellAllocs.length > 0 ? (
+                                    <div className="flex flex-col gap-1">
+                                      {cellAllocs.map((a: any, aIdx: number) => {
+                                        const color = SUBJECT_COLORS[aIdx % SUBJECT_COLORS.length];
+                                        return (
+                                        <div key={a.id} className="rounded-lg p-1.5 text-[10px] leading-tight" style={{ background: color.bg, border: `1px solid ${color.border}` }}>
+                                          <div className="font-bold truncate" style={{ color: color.text }}>{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
+                                          <div className="text-[#67E8F9] truncate">{faculties.find((f: any) => f.id === a.faculty_id)?.name}</div>
+                                          <div className="flex justify-between mt-1 items-center gap-1">
+                                            <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate">{rooms.find((r: any) => r.id === a.room_id)?.name}</span>
+                                            {a.batches?.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate">{a.batches.join(',')}</span>}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="h-[30px]" />
-                                )}
-                              </td>
-                            );
-                          }) : (
-                            <td className="border border-themePrimary p-2 text-slate-600 italic text-center whitespace-nowrap">Select an item to preview</td>
-                          )
-                        )}
-                      </tr>
+                                      )})}
+                                    </div>
+                                  ) : (
+                                    <div className="h-[30px]" />
+                                  )}
+                                </td>
+                              );
+                            }) : (
+                              <td className="border border-[#2E3345] p-2 text-[#9CA3AF] italic text-center whitespace-nowrap bg-[#0D0F14]">Select an item to preview</td>
+                            )
+                          )}
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              // GRID VIEW LAYOUT (Time as rows, Days as columns) for Faculty and Room
+              <table className="border-collapse text-xs" style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
+                  <tr>
+                    <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-0 shadow-[1px_0_0_0_#2E3345] text-[#E5E7EB]">Time</th>
+                    {DAYS.map((day) => (
+                      <th key={day} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36] min-w-[200px]">
+                        {day}
+                      </th>
                     ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                  </tr>
+                </thead>
+                <tbody>
+                  {timeslots.map((slot: any) => (
+                    <tr key={slot.start} className="group transition">
+                      <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-0 bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
+                        {slot.display}
+                      </td>
+                      {slot.type === 'break' ? (
+                        <td colSpan={DAYS.length} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            --------- BREAK ---------
+                          </div>
+                        </td>
+                      ) : (
+                        DAYS.map((day) => {
+                          const cellAllocs = getCellAllocsGrid(day, slot.start);
+                          return (
+                            <td key={day} className="border border-[#2E3345] p-2 relative min-h-[80px] bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors duration-200 align-top">
+                              {cellAllocs.length > 0 ? (
+                                <div className={`flex gap-1 w-full h-full flex-col`}>
+                                  {cellAllocs.map((a: any, aIdx: number) => {
+                                    const color = SUBJECT_COLORS[aIdx % SUBJECT_COLORS.length];
+                                    const sem = semesters.find(s => s.id === a.semester_id);
+                                    const branch = sem ? branches.find(b => b.id === sem.branch_id) : null;
+                                    const branchSemStr = `${branch?.name || ''} ${sem?.name || ''}`;
+                                    
+                                    let detailLine = '';
+                                    if (selectedType.startsWith('room:')) {
+                                        detailLine = faculties.find((f: any) => f.id === a.faculty_id)?.name || '';
+                                    } else if (selectedType.startsWith('faculty:')) {
+                                        detailLine = rooms.find((r: any) => r.id === a.room_id)?.name || '';
+                                    } else {
+                                        detailLine = `${faculties.find((f: any) => f.id === a.faculty_id)?.name || ''} • ${rooms.find((r: any) => r.id === a.room_id)?.name || ''}`;
+                                    }
+                                    
+                                    return (
+                                      <div key={a.id} className="rounded-lg p-2 flex flex-col justify-center shadow" style={{ background: color.bg, border: `1px solid ${color.border}` }}>
+                                        <div className="font-bold text-xs truncate" style={{ color: color.text }}>{subjects.find((sub: any) => sub.id === a.subject_id)?.name}</div>
+                                        {!selectedType.startsWith('semester:') && <div className="text-[#E5E7EB] text-[10px] mt-0.5 truncate">{branchSemStr}</div>}
+                                        {detailLine && <div className="text-[#67E8F9] text-[10px] mt-0.5 truncate">{detailLine}</div>}
+                                        {a.batches?.length > 0 && <div className="text-[#FDE68A] text-[10px] font-bold truncate mt-0.5">{a.batches.join(',')}</div>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="w-full h-full min-h-[60px]"></div>
+                              )}
+                            </td>
+                          );
+                        })
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
