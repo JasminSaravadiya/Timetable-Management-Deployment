@@ -421,6 +421,12 @@ async def delete_subject(subject_id: int, db: AsyncSession = Depends(get_db)):
     subject = result.scalars().first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
+
+    # Check for active allocations
+    alloc_result = await db.execute(select(models.Allocation).filter(models.Allocation.subject_id == subject_id))
+    if alloc_result.scalars().first():
+        raise HTTPException(status_code=400, detail="Warning: Cannot delete subject while related timetable data exists.")
+
     await db.delete(subject)
     await db.commit()
     _cache_invalidate()
@@ -481,6 +487,15 @@ async def delete_faculty(faculty_id: int, db: AsyncSession = Depends(get_db)):
     faculty = result.scalars().first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
+
+    # Check for active allocations
+    alloc_result = await db.execute(select(models.Allocation).filter(models.Allocation.faculty_id == faculty_id))
+    if alloc_result.scalars().first():
+        raise HTTPException(status_code=400, detail="Warning: Cannot delete faculty while related timetable data exists.")
+
+    # Cascade manual delete of mappings
+    await db.execute(sa_delete(models.SemesterFacultyMap).where(models.SemesterFacultyMap.faculty_id == faculty_id))
+
     await db.delete(faculty)
     await db.commit()
     _cache_invalidate()
@@ -541,6 +556,15 @@ async def delete_room(room_id: int, db: AsyncSession = Depends(get_db)):
     room = result.scalars().first()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
+
+    # Check for active allocations
+    alloc_result = await db.execute(select(models.Allocation).filter(models.Allocation.room_id == room_id))
+    if alloc_result.scalars().first():
+        raise HTTPException(status_code=400, detail="Warning: Cannot delete room while related timetable data exists.")
+
+    # Cascade manual delete of mappings
+    await db.execute(sa_delete(models.SemesterRoomMap).where(models.SemesterRoomMap.room_id == room_id))
+
     await db.delete(room)
     await db.commit()
     _cache_invalidate()

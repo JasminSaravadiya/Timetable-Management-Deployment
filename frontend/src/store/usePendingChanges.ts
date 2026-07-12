@@ -44,6 +44,27 @@ export const usePendingChanges = create<PendingChangesState>((set, get) => ({
 
   addOp: (op) => set((state) => {
     if (op.type === 'delete') {
+      // Clean up related operations when a faculty is deleted
+      if (op.entity === 'faculties' && op.entityId !== undefined) {
+        const filteredOps = state.ops.filter(o => {
+          if (op.entityId < 0 && o.entity === 'faculties' && o.tempId === op.entityId) {
+            return false;
+          }
+          if (o.entity === 'mappings/faculty' && o.data?.faculty_id === op.entityId) {
+            return false;
+          }
+          if (o.entity === 'allocations' && o.data?.faculty_id === op.entityId) {
+            return false;
+          }
+          return true;
+        });
+        if (op.entityId < 0) {
+          return { ops: filteredOps };
+        } else {
+          return { ops: [...filteredOps, { ...op, id: nextOpId() }] };
+        }
+      }
+
       if (op.entityId !== undefined && op.entityId < 0) {
         return {
           ops: state.ops.filter(o => 

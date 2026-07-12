@@ -11,7 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 // @ts-ignore
 import { useDroppable } from '@dnd-kit/core';
 import { API_URL } from '../config';
-import { fetchConfigData, invalidateCache } from '../apiCache';
+import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 import { usePendingChanges } from '../store/usePendingChanges';
 
 /* ═══════════════════════════════════════════════════════
@@ -134,6 +134,7 @@ export default function Configuration() {
   const [selectedSemId, setSelectedSemId] = useState<number | null>(null);
   const [showAllFaculty, setShowAllFaculty] = useState(false);
   const [mappedFaculties, setMappedFaculties] = useState<any[]>([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
 
   // Inline edit
   const [editingItem, setEditingItem] = useState<{ type: string; id: number; field: string; value: string } | null>(null);
@@ -190,7 +191,13 @@ export default function Configuration() {
     setFaculties(data.faculties);
     setRooms(data.rooms);
     setSubjects(data.subjects);
-  }, []);
+    try {
+      const allocs = await fetchAllocations(currentConfig.id);
+      setAllocations(allocs);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [currentConfig?.id]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -309,6 +316,27 @@ export default function Configuration() {
       setSubjects(prev => prev.filter(s => s.id !== id));
       addOp({ type: 'delete', entity: 'subjects', entityId: id });
     } else if (type === 'faculties') {
+      const isFacultyAllocated = (facId: number) => {
+        const activeAllocs = allocations.filter((a: any) => a.faculty_id === facId);
+        const pendingDeletes = ops.filter(o => o.entity === 'allocations' && o.type === 'delete');
+        const pendingDeletesIds = new Set(pendingDeletes.map(o => o.entityId));
+        
+        const hasDbAlloc = activeAllocs.some((a: any) => !pendingDeletesIds.has(a.id));
+        if (hasDbAlloc) return true;
+        
+        const pendingCreates = ops.filter(o => o.entity === 'allocations' && o.type === 'create' && o.data?.faculty_id === facId);
+        if (pendingCreates.length > 0) return true;
+        
+        return false;
+      };
+
+      if (isFacultyAllocated(id)) {
+        alert("Cannot delete faculty because they are allocated in the master timetable grid.");
+        setConfirmDeleteObj(null);
+        setDeletingItem(null);
+        return;
+      }
+
       setFaculties(prev => prev.filter(f => f.id !== id));
       setMappedFaculties(prev => prev.filter((f: any) => f.id !== id));
       addOp({ type: 'delete', entity: 'faculties', entityId: id });

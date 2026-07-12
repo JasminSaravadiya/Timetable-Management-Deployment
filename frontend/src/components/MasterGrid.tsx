@@ -44,6 +44,15 @@ export default function MasterGrid() {
   const tempIdCounter = React.useRef(-1);
   const nextTempId = () => tempIdCounter.current--;
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<'master' | 'semester'>('master');
+  const [activeSemContext, setActiveSemContext] = useState<{
+    branchId: number;
+    semId: number;
+    branchName: string;
+    semName: string;
+  } | null>(null);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: string, time: string, semId: number, allocationId?: number } | null>(null);
@@ -134,6 +143,17 @@ export default function MasterGrid() {
   const handleCellClick = (day: string, time: string, semId: number) => {
     setSelectedCell({ day, time, semId });
     setIsModalOpen(true);
+  };
+
+  // Semester View toggle via double-click
+  const handleSemesterDoubleClick = (branchId: number, semId: number, branchName: string, semName: string) => {
+    if (viewMode === 'semester' && activeSemContext?.semId === semId) {
+      setViewMode('master');
+      setActiveSemContext(null);
+    } else {
+      setViewMode('semester');
+      setActiveSemContext({ branchId, semId, branchName, semName });
+    }
   };
 
   const handleDeleteAllocation = (id: number) => {
@@ -239,7 +259,23 @@ export default function MasterGrid() {
         className="flex-1 relative custom-scrollbar"
         style={{ overflow: 'auto', minWidth: 0, minHeight: 0 }}
       >
-        {/* Table Wrapper — inline-block + min-width:max-content lets the table expand beyond viewport */}
+        {viewMode === 'semester' && activeSemContext ? (
+          <SemesterView
+            semContext={activeSemContext}
+            timeslots={timeslots}
+            allocations={allocations}
+            subjects={subjects}
+            faculties={faculties}
+            rooms={rooms}
+            onCellClick={handleCellClick}
+            onAllocClick={(day: string, time: string, semId: number, allocId: number) => {
+              setSelectedCell({ day, time, semId, allocationId: allocId });
+              setIsModalOpen(true);
+            }}
+            onBack={() => { setViewMode('master'); setActiveSemContext(null); }}
+            slotDuration={currentConfig?.slot_duration_minutes || 60}
+          />
+        ) : (
         <div
           className="rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm shadow-2xl"
           style={{ display: 'inline-block', minWidth: '100%' }}
@@ -265,7 +301,12 @@ export default function MasterGrid() {
                 {branches.map((b: any) => {
                   const sems = semesters.filter((s: any) => s.branch_id === b.id);
                   return sems.map((s: any) => (
-                    <th key={s.id} className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px]">
+                    <th
+                      key={s.id}
+                      className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px] sem-header-interactive"
+                      onDoubleClick={() => handleSemesterDoubleClick(b.id, s.id, b.name, s.name)}
+                      title="Double-click to view semester timetable"
+                    >
                       {s.name}
                     </th>
                   ));
@@ -407,6 +448,7 @@ export default function MasterGrid() {
           </table>
 
         </div>
+        )}
       </div>
 
       {/* Allocation Modal */}
@@ -648,6 +690,149 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Subcomponent for Semester View (Days as columns, Timeslots as rows)
+function SemesterView({ semContext, timeslots, allocations, subjects, faculties, rooms, onCellClick, onAllocClick, onBack, slotDuration }: {
+  semContext: { branchId: number; semId: number; branchName: string; semName: string };
+  timeslots: any[];
+  allocations: any[];
+  subjects: any[];
+  faculties: any[];
+  rooms: any[];
+  onCellClick: (day: string, time: string, semId: number) => void;
+  onAllocClick: (day: string, time: string, semId: number, allocId: number) => void;
+  onBack: () => void;
+  slotDuration: number;
+}) {
+  const semAllocations = allocations.filter((a: any) => a.semester_id === semContext.semId);
+
+  const getAllocsForCell = (day: string, time: string) => {
+    return semAllocations.filter((a: any) => a.day_of_week === day && a.start_time === time);
+  };
+
+  return (
+    <div className="semester-view-enter" style={{ minWidth: '100%', display: 'inline-block' }}>
+      {/* Semester View Header */}
+      <div className="sem-view-header">
+        <button className="sem-back-btn" onClick={onBack}>
+          ← Back to Master
+        </button>
+        <div className="sem-view-title">
+          Viewing Timetable: <span>{semContext.branchName}</span> — <span>{semContext.semName}</span>
+        </div>
+        <div className="sem-view-badge">Semester View</div>
+      </div>
+
+      {/* Semester Grid Table */}
+      <div
+        className="rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm shadow-2xl mx-4 mt-2"
+        style={{ display: 'inline-block', minWidth: 'calc(100% - 32px)' }}
+      >
+        <table className="border-collapse border border-[#2E3345]" style={{ width: 'max-content', minWidth: '100%' }}>
+          <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
+            <tr>
+              <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-0 shadow-sm text-[#E5E7EB]">Time</th>
+              {DAYS.map((day) => (
+                <th key={day} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36] min-w-[200px]">
+                  {day}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {timeslots.map((timeObj: any, timeIndex: number) => {
+              const time = timeObj.start;
+
+              // Track covered cells per day for this semester view (for rowSpan equivalent handling via skipping)
+              // In this layout, multi-slot allocations span multiple rows within the same day column
+              // We need to track which day columns are covered by previous rowSpans
+
+              return (
+                <tr key={time} className="group transition">
+                  {/* Time label */}
+                  <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-0 bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
+                    {timeObj.display}
+                  </td>
+
+                  {/* Break row */}
+                  {timeObj.type === 'break' && (
+                    <td colSpan={DAYS.length} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        --------- BREAK ---------
+                      </div>
+                    </td>
+                  )}
+
+                  {/* Normal slot cells for each day */}
+                  {timeObj.type === 'slot' && DAYS.map((day) => {
+                    const cellAllocs = getAllocsForCell(day, time);
+
+                    return (
+                      <td
+                        key={`${day}-${time}`}
+                        className="border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors duration-200 align-top"
+                        onClick={() => onCellClick(day, time, semContext.semId)}
+                      >
+                        <div className="flex flex-col gap-1 w-full h-full">
+                          {cellAllocs.length === 0 ? (
+                            <div className="w-full h-full min-h-[60px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-[#9CA3AF] font-bold text-xl">+</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className={`flex gap-1 w-full h-full ${cellAllocs.length > 1 ? 'flex-row' : 'flex-col'}`}>
+                                {cellAllocs.map((a: any, allocIdx: number) => {
+                                  const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
+                                  return (
+                                    <div
+                                      key={a.id}
+                                      className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
+                                      style={{
+                                        background: colorScheme.bg,
+                                        border: `1px solid ${colorScheme.border}`,
+                                      }}
+                                      onClick={(e) => { e.stopPropagation(); onAllocClick(day, time, semContext.semId, a.id); }}
+                                    >
+                                      <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
+                                        {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
+                                      </div>
+                                      <div className="text-[#67E8F9] text-xs mt-1 truncate">
+                                        {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
+                                      </div>
+                                      <div className="flex justify-between mt-1 items-center gap-1">
+                                        <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
+                                          {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
+                                        </span>
+                                        {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Hover + indicator for adding another entry */}
+                              <div
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                onClick={(e) => { e.stopPropagation(); onCellClick(day, time, semContext.semId); }}
+                              >
+                                <div className="bg-[#262A36] hover:bg-[#2E3345] rounded-full w-5 h-5 flex items-center justify-center shadow border border-[#2E3345] cursor-pointer" title="Add another allocation">
+                                  <span className="text-[#9CA3AF] font-bold text-xs leading-none">+</span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
