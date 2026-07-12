@@ -364,7 +364,7 @@ export default function Dashboard() {
         </button>
 
         {/* Subtle divider and hint */}
-        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 1, fontSize: 18, lineHeight: 1.5, color: '#9CA3AF' }}>
+        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 1, fontSize: 12, lineHeight: 1.5, color: '#9CA3AF' }}>
           Proudly Developed by<br /> - <code>Enough Team</code>
         </div>
       </aside>
