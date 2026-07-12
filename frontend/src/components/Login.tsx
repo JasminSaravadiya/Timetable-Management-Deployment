@@ -160,7 +160,6 @@ export const Login: React.FC = () => {
             name={`usr_${Math.random().toString(36).substring(2, 8)}`}
             autoComplete="new-password"
             readOnly={true}
-            onFocus={(e) => e.target.removeAttribute('readonly')}
             placeholder="Enter username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -206,7 +205,6 @@ export const Login: React.FC = () => {
             name={`pwd_${Math.random().toString(36).substring(2, 8)}`}
             autoComplete="new-password"
             readOnly={true}
-            onFocus={(e) => e.target.removeAttribute('readonly')}
             placeholder="Enter password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

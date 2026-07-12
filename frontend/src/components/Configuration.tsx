@@ -90,7 +90,7 @@ const minsToTime = (mins: number) => {
 export default function Configuration() {
   const { currentConfig, setConfig } = useStore();
   const navigate = useNavigate();
-  const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi, clearOps } = usePendingChanges();
+  const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi, clearOps, ops } = usePendingChanges();
 
   // Data state
   const [branches, setBranches] = useState<any[]>([]);
@@ -163,7 +163,6 @@ export default function Configuration() {
   // Add modals
   const [addBranchName, setAddBranchName] = useState('');
   const [addSemName, setAddSemName] = useState('');
-  const [addSemBranchId, setAddSemBranchId] = useState<number | null>(null);
   const [addFacultyName, setAddFacultyName] = useState('');
   const [addFacultyWorkload, setAddFacultyWorkload] = useState('04:00');
   const [addSubjectName, setAddSubjectName] = useState('');
@@ -198,11 +197,25 @@ export default function Configuration() {
   // Fetch mapped faculties when semester changes
   useEffect(() => {
     if (selectedSemId) {
-      axios.get(`${API_URL}/mappings/faculty/${selectedSemId}`).then(r => setMappedFaculties(r.data));
+      axios.get(`${API_URL}/mappings/faculty/${selectedSemId}`).then(r => {
+        let mapped = r.data;
+        const pendingDeletes = ops.filter(o => o.type === 'delete' && o.entity === 'mappings/faculty' && o.data?.faculty_id && o.entityId === selectedSemId);
+        pendingDeletes.forEach(delOp => {
+          mapped = mapped.filter((f: any) => f.id !== delOp.data?.faculty_id);
+        });
+        const pendingCreates = ops.filter(o => o.type === 'create' && o.entity === 'mappings/faculty' && o.data?.semester_id === selectedSemId);
+        pendingCreates.forEach(createOp => {
+          const fac = faculties.find((f: any) => f.id === createOp.data?.faculty_id);
+          if (fac && !mapped.find((m: any) => m.id === fac.id)) {
+            mapped.push(fac);
+          }
+        });
+        setMappedFaculties(mapped);
+      });
     } else {
       setMappedFaculties([]);
     }
-  }, [selectedSemId]);
+  }, [selectedSemId, ops, faculties]);
 
   const semSubjects = subjects.filter((s: any) => s.semester_id === selectedSemId);
 

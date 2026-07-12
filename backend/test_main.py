@@ -1,4 +1,3 @@
-import pytest
 from datetime import time
 from main import check_overlap, add_minutes
 

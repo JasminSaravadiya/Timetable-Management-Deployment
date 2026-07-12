@@ -139,9 +139,7 @@ export default function MasterGrid() {
   const handleDeleteAllocation = (id: number) => {
     if (!confirm('Remove this allocation?')) return;
     setAllocations(prev => prev.filter((a: any) => a.id !== id));
-    if (id > 0) {
-      addOp({ type: 'delete', entity: 'allocations', entityId: id });
-    }
+    addOp({ type: 'delete', entity: 'allocations', entityId: id });
   };
 
   return (
@@ -433,9 +431,7 @@ export default function MasterGrid() {
           }}
           onDeleteLocal={(id: number) => {
             setAllocations(prev => prev.filter((a: any) => a.id !== id));
-            if (id > 0) {
-              addOp({ type: 'delete', entity: 'allocations', entityId: id });
-            }
+            addOp({ type: 'delete', entity: 'allocations', entityId: id });
             setIsModalOpen(false);
             setSelectedCell(null);
           }}
@@ -538,16 +534,29 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
 
     // --- Local Collision Check ---
     const ignoreFacultyCollision = selectedFac?.ignore_collision === true;
+    
+    // Parse proposed times
+    const newStart = parse(allocation.start_time, 'HH:mm:ss', new Date());
+    const newEnd = addMinutes(newStart, allocation.duration_minutes);
+    
     for (const a of allocations) {
       if (isEditing && a.id === cell.allocationId) continue;
 
-      if (a.day_of_week === allocation.day_of_week && a.start_time === allocation.start_time) {
-        // Faculty Collision
-        if (!ignoreFacultyCollision && a.faculty_id && a.faculty_id === allocation.faculty_id) {
-          setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching another class at this time.`);
-          return;
+      if (a.day_of_week === allocation.day_of_week) {
+        const extStart = parse(a.start_time, 'HH:mm:ss', new Date());
+        const extEnd = addMinutes(extStart, a.duration_minutes);
+        
+        // Check overlap: max(start1, start2) < min(end1, end2)
+        const maxStart = isBefore(newStart, extStart) ? extStart : newStart;
+        const minEnd = isBefore(newEnd, extEnd) ? newEnd : extEnd;
+        
+        if (isBefore(maxStart, minEnd)) {
+          // Faculty Collision
+          if (!ignoreFacultyCollision && a.faculty_id && a.faculty_id === allocation.faculty_id) {
+            setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching another class at this time.`);
+            return;
+          }
         }
-
       }
     }
 

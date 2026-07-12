@@ -42,7 +42,36 @@ export const usePendingChanges = create<PendingChangesState>((set, get) => ({
   isFlushing: false,
   flushError: null,
 
-  addOp: (op) => set((state) => ({ ops: [...state.ops, { ...op, id: nextOpId() }] })),
+  addOp: (op) => set((state) => {
+    if (op.type === 'delete') {
+      if (op.entityId !== undefined && op.entityId < 0) {
+        return {
+          ops: state.ops.filter(o => 
+            !(o.type === 'create' && o.entity === op.entity && o.tempId === op.entityId) &&
+            !(o.type === 'update' && o.entity === op.entity && o.entityId === op.entityId)
+          )
+        };
+      }
+      if (op.entity === 'mappings/faculty' && op.data?.faculty_id !== undefined) {
+        const semesterId = op.entityId;
+        const facultyId = op.data.faculty_id;
+        const hasCreate = state.ops.some(o => 
+          o.type === 'create' && 
+          o.entity === 'mappings/faculty' && 
+          o.data?.semester_id === semesterId && 
+          o.data?.faculty_id === facultyId
+        );
+        if (hasCreate) {
+          return {
+            ops: state.ops.filter(o => 
+              !(o.type === 'create' && o.entity === 'mappings/faculty' && o.data?.semester_id === semesterId && o.data?.faculty_id === facultyId)
+            )
+          };
+        }
+      }
+    }
+    return { ops: [...state.ops, { ...op, id: nextOpId() }] };
+  }),
 
   removeOp: (opId) => set((state) => ({ ops: state.ops.filter(o => o.id !== opId) })),
 
@@ -80,7 +109,7 @@ export const usePendingChanges = create<PendingChangesState>((set, get) => ({
     // Sort deletes by reverse dependency order
     deletes.sort((a, b) => entityDeleteOrder.indexOf(a.entity) - entityDeleteOrder.indexOf(b.entity));
 
-    const ordered = [...creates, ...updates, ...deletes];
+    const ordered = [...deletes, ...updates, ...creates];
     const errors: string[] = [];
 
     for (const op of ordered) {

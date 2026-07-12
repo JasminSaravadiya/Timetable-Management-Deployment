@@ -14,7 +14,7 @@ import os
 
 import models
 import schemas
-from database import get_db, engine, Base
+from database import get_db, engine
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -121,7 +121,6 @@ async def startup():
             logger.info("Added updated_at column to timetable_configs")
         except Exception as e:
             logger.debug(f"updated_at column likely already exists: {e}")
-            pass
 
 @app.get("/")
 def read_root():
@@ -670,8 +669,6 @@ async def update_allocation(allocation_id: int, data: schemas.AllocationUpdate, 
     # Use existing or proposed details
     prop_duration = update_data.get('duration_minutes', db_allocation.duration_minutes)
     prop_faculty = update_data.get('faculty_id', db_allocation.faculty_id)
-    prop_sem = db_allocation.semester_id # Fixed in this context
-    prop_batches = update_data.get('batches', db_allocation.batches)
     
     new_end = add_minutes(new_start, prop_duration)
 
