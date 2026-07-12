@@ -82,3 +82,10 @@ class Allocation(Base):
     batches = Column(JSON, default=list) # e.g., ['Batch A', 'Batch B'] for splitting
 
     config = relationship("TimetableConfig", back_populates="allocations")
+
+class PublishedTimetable(Base):
+    __tablename__ = "published_timetables"
+    id = Column(Integer, primary_key=True, index=True)
+    config_id = Column(Integer, ForeignKey("timetable_configs.id"), index=True, unique=True)
+    published_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    data = Column(JSON, nullable=False)

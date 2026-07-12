@@ -22,6 +22,7 @@ class ConfigUpdate(BaseModel):
 class ConfigOut(ConfigBase):
     id: int
     updated_at: Optional[datetime] = None
+    last_published_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 

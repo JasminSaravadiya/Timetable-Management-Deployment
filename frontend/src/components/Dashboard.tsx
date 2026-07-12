@@ -166,6 +166,20 @@ export default function Dashboard() {
     navigate('/configure');
   };
 
+  const handlePublish = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await withLoading(async () => {
+        await axios.post(`${API_URL}/publish?config_id=${id}`);
+        await fetchConfigs(); // refresh to get new last_published_at
+      }, 'Publishing timetable...');
+      alert('Timetable published successfully!');
+    } catch (err: any) {
+      console.error('[Publish timetable error]', err);
+      alert(`Failed to publish: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
   const handleDeleteTimetable = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation(); // prevent card click from firing
     if (!window.confirm('Are you sure you want to delete this timetable and ALL its data? This cannot be undone.')) return;
@@ -522,6 +536,35 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Publish button */}
+                  <button
+                    id={`btn-publish-${c.id}`}
+                    onClick={(e) => handlePublish(e, c.id!)}
+                    title="Publish Timetable to Student View"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: '1px solid ' + ((c as any).last_published_at ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.3)'),
+                      background: (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)',
+                      color: (c as any).last_published_at ? '#34d399' : '#C4B5FD',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.2)' : 'rgba(167,139,250,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)';
+                    }}
+                  >
+                    <span>🚀</span> {(c as any).last_published_at ? 'Publish Changes' : 'Publish'}
+                  </button>
                   {/* Delete button */}
                   <button
                     id={`btn-delete-${c.id}`}

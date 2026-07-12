@@ -164,6 +164,28 @@ export default function MasterGrid() {
     addOp({ type: 'delete', entity: 'allocations', entityId: id });
   };
 
+  const handlePublish = async () => {
+    if (hasPendingChanges()) {
+      alert("Please save all changes before publishing.");
+      return;
+    }
+    if (!currentConfig?.id) return;
+    try {
+      await withLoading(async () => {
+        await axios.post(`${API_URL}/publish?config_id=${currentConfig.id}`);
+        alert('Timetable published to student view successfully!');
+        const res = await axios.get(`${API_URL}/config`);
+        const updated = res.data.find((c: any) => c.id === currentConfig.id);
+        if (updated) {
+          useStore.getState().setConfig(updated);
+        }
+      }, 'Publishing...');
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to publish: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
   const handleHighlightCollidingCell = (collidingAlloc: any) => {
     setIsModalOpen(false);
     setSelectedCell(null);
@@ -289,6 +311,23 @@ export default function MasterGrid() {
               {isFlushing ? 'Saving...' : '💾 Save All'}
             </button>
           )}
+
+          <button
+            onClick={handlePublish}
+            disabled={isFlushing}
+            title="Publish Timetable to Student View"
+            style={{
+              background: (currentConfig as any)?.last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)', 
+              color: (currentConfig as any)?.last_published_at ? '#34d399' : '#C4B5FD', 
+              border: '1px solid ' + ((currentConfig as any)?.last_published_at ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.3)'), 
+              borderRadius: '12px',
+              padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', cursor: isFlushing ? 'wait' : 'pointer',
+              opacity: isFlushing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>🚀</span> {(currentConfig as any)?.last_published_at ? 'Publish Changes' : 'Publish Timetable'}
+          </button>
 
           <button
             disabled={isFlushing}

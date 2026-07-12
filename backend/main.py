@@ -37,7 +37,7 @@ class LoginRequest(BaseModel):
 # Dependency to protect your endpoints
 def verify_token(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
     path = request.url.path
-    if path == "/api/login" or path == "/" or not path.startswith("/api"):
+    if path == "/api/login" or path == "/" or path.startswith("/api/view/") or not path.startswith("/api"):
         return token
     if not token or token != AUTH_TOKEN:
         raise HTTPException(
@@ -111,16 +111,19 @@ def _cache_invalidate():
 
 @app.on_event("startup")
 async def startup():
+    # Transaction 1: Create missing tables
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-        # Detect dialect to use correct column type
-        dialect = engine.dialect.name  # "postgresql" or "sqlite"
-        col_type = "TIMESTAMP" if dialect == "postgresql" else "DATETIME"
-        try:
+        
+    # Transaction 2: Manual migration for existing DBs
+    try:
+        async with engine.begin() as conn:
+            dialect = engine.dialect.name
+            col_type = "TIMESTAMP" if dialect == "postgresql" else "DATETIME"
             await conn.execute(text(f"ALTER TABLE timetable_configs ADD COLUMN updated_at {col_type} DEFAULT CURRENT_TIMESTAMP"))
             logger.info("Added updated_at column to timetable_configs")
-        except Exception as e:
-            logger.debug(f"updated_at column likely already exists: {e}")
+    except Exception as e:
+        logger.debug(f"updated_at column likely already exists: {e}")
 
 @app.get("/")
 def read_root():
@@ -152,6 +155,13 @@ async def read_configs(db: AsyncSession = Depends(get_db)):
             return cached
         result = await db.execute(select(models.TimetableConfig).options(selectinload(models.TimetableConfig.allocations)))
         data = result.scalars().all()
+        
+        pub_result = await db.execute(select(models.PublishedTimetable.config_id, models.PublishedTimetable.published_at))
+        pub_dict = {row.config_id: row.published_at for row in pub_result.all()}
+        
+        for config in data:
+            config.last_published_at = pub_dict.get(config.id)
+            
         _cache_set("configs", data)
         return data
     except Exception as e:
@@ -1248,3 +1258,93 @@ async def export_excel(
             "Access-Control-Expose-Headers": "Content-Disposition"
         }
     )
+
+# ═══════════════════════════════════
+#  PUBLISH & PUBLIC VIEW
+# ═══════════════════════════════════
+@app.post("/api/publish")
+async def publish_timetable(config_id: int, db: AsyncSession = Depends(get_db)):
+    # 1. Verify config exists
+    config_result = await db.execute(select(models.TimetableConfig).filter(models.TimetableConfig.id == config_id))
+    config = config_result.scalars().first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    # 2. Fetch all allocations for this config
+    alloc_result = await db.execute(
+        select(models.Allocation)
+        .filter(models.Allocation.config_id == config_id)
+        .options(selectinload(models.Allocation.config))
+    )
+    allocations = alloc_result.scalars().all()
+
+    # 3. Fetch related entities to resolve names
+    branches = (await db.execute(select(models.Branch).filter(models.Branch.config_id == config_id))).scalars().all()
+    semesters = (await db.execute(select(models.Semester).filter(models.Semester.config_id == config_id))).scalars().all()
+    subjects = (await db.execute(select(models.Subject).filter(models.Subject.config_id == config_id))).scalars().all()
+    faculties = (await db.execute(select(models.Faculty).filter(models.Faculty.config_id == config_id))).scalars().all()
+    rooms = (await db.execute(select(models.Room).filter(models.Room.config_id == config_id))).scalars().all()
+
+    branch_map = {b.id: b.name for b in branches}
+    sem_map = {s.id: {"name": s.name, "branch_id": s.branch_id} for s in semesters}
+    sub_map = {s.id: s.name for s in subjects}
+    fac_map = {f.id: f.name for f in faculties}
+    room_map = {r.id: r.name for r in rooms}
+
+    # 4. Build JSON payload
+    payload = []
+    for alloc in allocations:
+        sem_info = sem_map.get(alloc.semester_id, {})
+        payload.append({
+            "id": alloc.id,
+            "day_of_week": alloc.day_of_week,
+            "start_time": alloc.start_time.isoformat() if alloc.start_time else None,
+            "duration_minutes": alloc.duration_minutes,
+            "batches": alloc.batches,
+            "subject": sub_map.get(alloc.subject_id, "Unknown"),
+            "faculty": fac_map.get(alloc.faculty_id, "Unknown"),
+            "room": room_map.get(alloc.room_id, "Unknown"),
+            "semester": sem_info.get("name", "Unknown"),
+            "branch": branch_map.get(sem_info.get("branch_id"), "Unknown")
+        })
+
+    # Add timeslot/break info for UI formatting
+    breaks = config.breaks or []
+    metadata = {
+        "start_time": config.start_time.isoformat() if config.start_time else None,
+        "end_time": config.end_time.isoformat() if config.end_time else None,
+        "slot_duration_minutes": config.slot_duration_minutes,
+        "breaks": breaks
+    }
+    
+    full_data = {
+        "metadata": metadata,
+        "allocations": payload
+    }
+
+    # 5. Upsert PublishedTimetable and clear others
+    await db.execute(sa_delete(models.PublishedTimetable).where(models.PublishedTimetable.config_id != config_id))
+    
+    pub_result = await db.execute(select(models.PublishedTimetable).filter(models.PublishedTimetable.config_id == config_id))
+    published = pub_result.scalars().first()
+    
+    if published:
+        published.data = full_data
+        published.published_at = datetime.utcnow()
+    else:
+        published = models.PublishedTimetable(config_id=config_id, data=full_data)
+        db.add(published)
+        
+    await db.commit()
+    _cache_invalidate()
+    return {"status": "success", "published_at": published.published_at}
+
+@app.get("/api/view/timetable")
+async def get_published_timetable(db: AsyncSession = Depends(get_db)):
+    pub_result = await db.execute(select(models.PublishedTimetable).limit(1))
+    published = pub_result.scalars().first()
+    
+    if not published:
+        return {"published": False, "data": None}
+        
+    return {"published": True, "published_at": published.published_at, "data": published.data}

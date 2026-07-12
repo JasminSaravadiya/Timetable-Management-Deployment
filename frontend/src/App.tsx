@@ -3,6 +3,7 @@ import Dashboard from './components/Dashboard';
 import Configuration from './components/Configuration';
 import MasterGrid from './components/MasterGrid';
 import ExportPreview from './components/ExportPreview';
+import PublicView from './components/PublicView';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { useStore } from './store/useStore';
 
@@ -16,31 +17,35 @@ function App() {
   // Pull authentication state from Zustand
   const token = useAuthStore((state) => state.token);
 
-  // GLOBAL GUARD: If the user has no token, completely block the app and render Login
-  if (!token) {
-    return <Login />;
-  }
+  // Authenticated route wrapper
+  const AuthRoute = ({ children }: { children: JSX.Element }) => {
+    return token ? children : <Navigate to="/login" replace />;
+  };
 
-  // If token exists, render the actual router and application
   return (
     <LoadingProvider>
-
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          {/* Public Routes */}
+          <Route path="/login" element={token ? <Navigate to="/" replace /> : <Login />} />
+          <Route path="/view" element={<PublicView />} />
+
+          {/* Protected Routes */}
+          <Route path="/" element={<AuthRoute><Dashboard /></AuthRoute>} />
           <Route 
             path="/configure" 
-            element={currentConfig ? <Configuration /> : <Navigate to="/" />} 
+            element={currentConfig ? <AuthRoute><Configuration /></AuthRoute> : <Navigate to="/" />} 
           />
           <Route 
             path="/grid" 
-            element={currentConfig ? <MasterGrid /> : <Navigate to="/" />} 
+            element={currentConfig ? <AuthRoute><MasterGrid /></AuthRoute> : <Navigate to="/" />} 
           />
           <Route 
             path="/export" 
-            element={currentConfig ? <ExportPreview /> : <Navigate to="/" />} 
+            element={currentConfig ? <AuthRoute><ExportPreview /></AuthRoute> : <Navigate to="/" />} 
           />
-          {/* Catch-all: redirect unknown routes to dashboard */}
+          
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
