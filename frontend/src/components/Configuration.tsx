@@ -13,6 +13,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { API_URL } from '../config';
 import { fetchConfigData, fetchAllocations, invalidateCache } from '../apiCache';
 import { usePendingChanges } from '../store/usePendingChanges';
+import { useLoading } from '../contexts/LoadingContext';
 
 /* ═══════════════════════════════════════════════════════
    SHARED STYLES
@@ -91,6 +92,7 @@ export default function Configuration() {
   const { currentConfig, setConfig } = useStore();
   const navigate = useNavigate();
   const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi, clearOps, ops } = usePendingChanges();
+  const { setLoading } = useLoading();
 
   // Data state
   const [branches, setBranches] = useState<any[]>([]);
@@ -134,6 +136,7 @@ export default function Configuration() {
   const [selectedSemId, setSelectedSemId] = useState<number | null>(null);
   const [showAllFaculty, setShowAllFaculty] = useState(false);
   const [mappedFaculties, setMappedFaculties] = useState<any[]>([]);
+  const [isLoadingMappedFaculties, setIsLoadingMappedFaculties] = useState(false);
   const [allocations, setAllocations] = useState<any[]>([]);
 
   // Inline edit
@@ -204,6 +207,7 @@ export default function Configuration() {
   // Fetch mapped faculties when semester changes
   const fetchMappedFaculties = useCallback(() => {
     if (selectedSemId) {
+      setIsLoadingMappedFaculties(true);
       axios.get(`${API_URL}/mappings/faculty/${selectedSemId}`).then(r => {
         let mapped = r.data;
         const currentOps = usePendingChanges.getState().ops;
@@ -219,9 +223,12 @@ export default function Configuration() {
           }
         });
         setMappedFaculties(mapped);
+      }).finally(() => {
+        setIsLoadingMappedFaculties(false);
       });
     } else {
       setMappedFaculties([]);
+      setIsLoadingMappedFaculties(false);
     }
   }, [selectedSemId, faculties]);
 
@@ -476,18 +483,23 @@ export default function Configuration() {
                   disabled={isFlushing}
                   onClick={async () => {
                     if (!currentConfig?.id) return;
-                    const result = await flushToApi(currentConfig.id);
-                    if (result.success) {
-                      showSaved();
-                      invalidateCache();
-                      await fetchAll();
-                      fetchMappedFaculties();
-                    } else {
-                      showError();
-                      alert(result.error || 'Some changes failed to save.');
-                      invalidateCache();
-                      await fetchAll();
-                      fetchMappedFaculties();
+                    setLoading(true, "Saving changes...");
+                    try {
+                      const result = await flushToApi(currentConfig.id);
+                      if (result.success) {
+                        showSaved();
+                        invalidateCache();
+                        await fetchAll();
+                        fetchMappedFaculties();
+                      } else {
+                        showError();
+                        alert(result.error || 'Some changes failed to save.');
+                        invalidateCache();
+                        await fetchAll();
+                        fetchMappedFaculties();
+                      }
+                    } finally {
+                      setLoading(false);
                     }
                   }}
                   style={{
@@ -625,12 +637,17 @@ export default function Configuration() {
               onClick={async () => {
                 if (hasPendingChanges()) {
                   if (!currentConfig?.id) return;
-                  const result = await flushToApi(currentConfig.id);
-                  if (!result.success) {
-                    alert(result.error || 'Failed to save.');
-                    return;
+                  setLoading(true, "Saving changes...");
+                  try {
+                    const result = await flushToApi(currentConfig.id);
+                    if (!result.success) {
+                      alert(result.error || 'Failed to save.');
+                      return;
+                    }
+                    invalidateCache();
+                  } finally {
+                    setLoading(false);
                   }
-                  invalidateCache();
                 }
                 navigate('/');
               }}
@@ -675,12 +692,17 @@ export default function Configuration() {
               onClick={async () => {
                 if (hasPendingChanges()) {
                   if (!currentConfig?.id) return;
-                  const result = await flushToApi(currentConfig.id);
-                  if (!result.success) {
-                    alert(result.error || 'Failed to save.');
-                    return;
+                  setLoading(true, "Saving changes...");
+                  try {
+                    const result = await flushToApi(currentConfig.id);
+                    if (!result.success) {
+                      alert(result.error || 'Failed to save.');
+                      return;
+                    }
+                    invalidateCache();
+                  } finally {
+                    setLoading(false);
                   }
-                  invalidateCache();
                 }
                 navigate('/grid');
               }}
@@ -770,6 +792,7 @@ export default function Configuration() {
                   mappedFaculties={mappedFaculties}
                   onUnmap={handleUnmapFaculty}
                   semLabel={`${selectedBranch.name} ${selectedSem.name}`}
+                  isLoading={isLoadingMappedFaculties}
                 />
               </div>
             </>
@@ -1052,7 +1075,7 @@ function DraggableFacultyCard({ faculty, idx, editingItem, onEdit, onEditChange,
 /* ═══════════════════════════════════════════════════════
    FACULTY DROP ZONE (center panel)
    ═══════════════════════════════════════════════════════ */
-function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculties: any[]; onUnmap: (id: number) => void; semLabel: string }) {
+function FacultyDropZone({ mappedFaculties, onUnmap, semLabel, isLoading }: { mappedFaculties: any[]; onUnmap: (id: number) => void; semLabel: string; isLoading?: boolean }) {
   const { isOver, setNodeRef } = useDroppable({ id: 'faculty-drop-zone' });
 
   return (
@@ -1069,7 +1092,35 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
         👥 {semLabel} Faculties
       </h3>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+        {isLoading && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            background: 'rgba(28, 31, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            borderRadius: 8,
+            zIndex: 10,
+          }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: '3px solid rgba(196, 181, 253, 0.1)',
+              borderTopColor: '#C4B5FD',
+              borderRightColor: '#A78BFA',
+              animation: 'loaderSpin 0.8s linear infinite',
+            }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#C4B5FD', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Loading...</span>
+          </div>
+        )}
+
         {mappedFaculties.map((fac: any, idx: number) => (
           <div key={fac.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1086,7 +1137,7 @@ function FacultyDropZone({ mappedFaculties, onUnmap, semLabel }: { mappedFaculti
             <button onClick={() => onUnmap(fac.id)} style={{ ...iconBtnStyle, width: 24, height: 24, fontSize: 10 }} title="Unmap faculty">✕</button>
           </div>
         ))}
-        {mappedFaculties.length === 0 && (
+        {mappedFaculties.length === 0 && !isLoading && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: 8 }}>
             <span style={{ fontSize: 24 }}>↩️</span>
             <p style={{ color: '#9CA3AF', fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>

@@ -23,7 +23,7 @@ const SUBJECT_COLORS = [
 export default function MasterGrid() {
   const { currentConfig } = useStore();
   const navigate = useNavigate();
-  const { withLoading } = useLoading();
+  const { setLoading, withLoading } = useLoading();
   const { addOp, hasPendingChanges, pendingCount, isFlushing, flushToApi } = usePendingChanges();
 
   const [branches, setBranches] = useState([]);
@@ -263,18 +263,23 @@ export default function MasterGrid() {
               disabled={isFlushing}
               onClick={async () => {
                 if (!currentConfig?.id) return;
-                const result = await flushToApi(currentConfig.id);
-                if (result.success) {
-                  showSaved();
-                  invalidateCache();
-                  await fetchBaseData();
-                  await loadAllocations();
-                } else {
-                  showError();
-                  alert(result.error || 'Some changes failed to save.');
-                  invalidateCache();
-                  await fetchBaseData();
-                  await loadAllocations();
+                setLoading(true, "Saving changes...");
+                try {
+                  const result = await flushToApi(currentConfig.id);
+                  if (result.success) {
+                    showSaved();
+                    invalidateCache();
+                    await fetchBaseData();
+                    await loadAllocations();
+                  } else {
+                    showError();
+                    alert(result.error || 'Some changes failed to save.');
+                    invalidateCache();
+                    await fetchBaseData();
+                    await loadAllocations();
+                  }
+                } finally {
+                  setLoading(false);
                 }
               }}
               style={{
@@ -295,12 +300,17 @@ export default function MasterGrid() {
             onClick={async () => {
               if (hasPendingChanges()) {
                 if (!currentConfig?.id) return;
-                const result = await flushToApi(currentConfig.id);
-                if (!result.success) {
-                  alert(result.error || 'Failed to save.');
-                  return;
+                setLoading(true, "Saving changes...");
+                try {
+                  const result = await flushToApi(currentConfig.id);
+                  if (!result.success) {
+                    alert(result.error || 'Failed to save.');
+                    return;
+                  }
+                  invalidateCache();
+                } finally {
+                  setLoading(false);
                 }
-                invalidateCache();
               }
               navigate('/configure');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
@@ -311,12 +321,17 @@ export default function MasterGrid() {
             onClick={async () => {
               if (hasPendingChanges()) {
                 if (!currentConfig?.id) return;
-                const result = await flushToApi(currentConfig.id);
-                if (!result.success) {
-                  alert(result.error || 'Failed to save.');
-                  return;
+                setLoading(true, "Saving changes...");
+                try {
+                  const result = await flushToApi(currentConfig.id);
+                  if (!result.success) {
+                    alert(result.error || 'Failed to save.');
+                    return;
+                  }
+                  invalidateCache();
+                } finally {
+                  setLoading(false);
                 }
-                invalidateCache();
               }
               navigate('/export');
             }} className="btn-primary" style={{ opacity: isFlushing ? 0.7 : 1, cursor: isFlushing ? 'wait' : 'pointer' }}>
