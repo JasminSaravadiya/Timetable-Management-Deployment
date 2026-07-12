@@ -808,7 +808,46 @@ def _generate_timeslots(config) -> list:
             cursor = slot_end
     return slots
 
-def _build_sheet(ws, title: str, allocs, timeslots, all_subjects, all_faculties, all_rooms, slot_duration: int):
+def _format_allocation_text(
+    a,
+    timetable_type: str,
+    sub_map: dict,
+    fac_map: dict,
+    rm_map: dict,
+    sem_map: dict = None,
+    branch_map: dict = None
+) -> str:
+    sub_name = sub_map.get(a.subject_id, '?')
+    fac_name = fac_map.get(a.faculty_id, '?')
+    rm_name = rm_map.get(a.room_id, '?')
+    batches = a.batches or []
+
+    batch_part = f"{', '.join(batches)} " if batches else ""
+    fac_part = f"({fac_name})" if timetable_type != 'faculty' else ""
+    rm_part = f"({rm_name})" if timetable_type != 'room' else ""
+
+    branch_sem_part = ""
+    if timetable_type in ('faculty', 'room') and sem_map and branch_map:
+        sem = sem_map.get(a.semester_id)
+        if sem:
+            bname = branch_map.get(sem.branch_id, '')
+            branch_sem_part = f" ({bname} {sem.name})"
+
+    return f"{batch_part}{sub_name}{fac_part}{rm_part}{branch_sem_part}"
+
+def _build_sheet(
+    ws,
+    title: str,
+    allocs,
+    timeslots,
+    all_subjects,
+    all_faculties,
+    all_rooms,
+    slot_duration: int,
+    timetable_type: str = 'semester',
+    all_branches = None,
+    all_semesters = None
+):
     """Build a single GTU-format sheet."""
     thin = Side(style='thin')
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -867,6 +906,8 @@ def _build_sheet(ws, title: str, allocs, timeslots, all_subjects, all_faculties,
     sub_map = {s.id: s.name for s in all_subjects}
     fac_map = {f.id: f.name for f in all_faculties}
     rm_map = {r.id: r.name for r in all_rooms}
+    sem_map = {s.id: s for s in all_semesters} if all_semesters else {}
+    branch_map = {b.id: b.name for b in all_branches} if all_branches else {}
 
     # Track which rows to merge for multi-slot labs (per day column)
     # We'll first write all data, then merge afterwards
@@ -918,16 +959,7 @@ def _build_sheet(ws, title: str, allocs, timeslots, all_subjects, all_faculties,
                 if cell_allocs:
                     lines = []
                     for a in cell_allocs:
-                        sub_name = sub_map.get(a.subject_id, '?')
-                        fac_name = fac_map.get(a.faculty_id, '?')
-                        rm_name = rm_map.get(a.room_id, '?')
-                        batches = a.batches or []
-
-                        if batches:
-                            for batch in batches:
-                                lines.append(f"{batch}\n{sub_name}({fac_name})({rm_name})")
-                        else:
-                            lines.append(f"{sub_name}({fac_name})({rm_name})")
+                        lines.append(_format_allocation_text(a, timetable_type, sub_map, fac_map, rm_map, sem_map, branch_map))
 
                         # Check if this is a multi-slot lab
                         if a.duration_minutes > slot_duration:
@@ -1057,14 +1089,7 @@ def _build_master_sheet(ws, title: str, allocs, timeslots, all_subjects, all_fac
                     if cell_allocs:
                         lines = []
                         for a in cell_allocs:
-                            sub_name = sub_map.get(a.subject_id, '?')
-                            fac_name = fac_map.get(a.faculty_id, '?')
-                            rm_name = rm_map.get(a.room_id, '?')
-                            batches = a.batches or []
-                            if batches:
-                                lines.append(f"{sub_name}\n{fac_name}\n{rm_name} [{','.join(batches)}]")
-                            else:
-                                lines.append(f"{sub_name}\n{fac_name}\n{rm_name}")
+                            lines.append(_format_allocation_text(a, 'master', sub_map, fac_map, rm_map))
 
                             # Check if this is a multi-slot lab
                             if a.duration_minutes > slot_duration:
@@ -1074,7 +1099,7 @@ def _build_master_sheet(ws, title: str, allocs, timeslots, all_subjects, all_fac
                                     end_row = slot_row_map.get(si, row) + spans - 1
                                     merge_ranges.append((row, end_row, col_idx))
 
-                        cell_value = '\n---\n'.join(lines)
+                        cell_value = '\n'.join(lines)
                         cell = ws.cell(row=row, column=col_idx, value=cell_value)
                     else:
                         cell = ws.cell(row=row, column=col_idx, value='')
@@ -1157,7 +1182,7 @@ async def export_excel(
                 sheet_title = f"{branch_name} {sem.name}".strip()
                 ws = wb.create_sheet(title=sheet_title[:31])
                 allocs = [a for a in all_allocations if a.semester_id == item_id]
-                _build_sheet(ws, sheet_title, allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+                _build_sheet(ws, sheet_title, allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'semester', all_branches, all_semesters)
                 filename = f"{branch_name}_{sem.name}_Timetable.xlsx".replace(' ', '_')
 
         elif item_type == 'faculty':
@@ -1165,7 +1190,7 @@ async def export_excel(
             if fac:
                 ws = wb.create_sheet(title=f"Faculty_{fac.name}"[:31])
                 allocs = [a for a in all_allocations if a.faculty_id == item_id]
-                _build_sheet(ws, f"Faculty: {fac.name}", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+                _build_sheet(ws, f"Faculty: {fac.name}", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'faculty', all_branches, all_semesters)
                 filename = f"Faculty_{fac.name}_Timetable.xlsx".replace(' ', '_')
 
         elif item_type == 'room':
@@ -1173,7 +1198,7 @@ async def export_excel(
             if rm:
                 ws = wb.create_sheet(title=f"Room_{rm.name}"[:31])
                 allocs = [a for a in all_allocations if a.room_id == item_id]
-                _build_sheet(ws, f"Room: {rm.name}", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+                _build_sheet(ws, f"Room: {rm.name}", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'room', all_branches, all_semesters)
                 filename = f"Room_{rm.name}_Timetable.xlsx".replace(' ', '_')
 
     elif mode == 'all':
@@ -1187,21 +1212,21 @@ async def export_excel(
             sheet_title = f"{branch_name} {sem.name}".strip()[:31]
             ws = wb.create_sheet(title=sheet_title)
             allocs = [a for a in all_allocations if a.semester_id == sem.id]
-            _build_sheet(ws, f"{branch_name} ({sem.name})", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+            _build_sheet(ws, f"{branch_name} ({sem.name})", allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'semester', all_branches, all_semesters)
 
         # Faculty sheets
         for fac in all_faculties:
             fac_allocs = [a for a in all_allocations if a.faculty_id == fac.id]
             if fac_allocs:
                 ws = wb.create_sheet(title=f"Fac_{fac.name}"[:31])
-                _build_sheet(ws, f"Faculty: {fac.name}", fac_allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+                _build_sheet(ws, f"Faculty: {fac.name}", fac_allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'faculty', all_branches, all_semesters)
 
         # Room sheets
         for rm in all_rooms:
             rm_allocs = [a for a in all_allocations if a.room_id == rm.id]
             if rm_allocs:
                 ws = wb.create_sheet(title=f"Room_{rm.name}"[:31])
-                _build_sheet(ws, f"Room: {rm.name}", rm_allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes)
+                _build_sheet(ws, f"Room: {rm.name}", rm_allocs, timeslots, all_subjects, all_faculties, all_rooms, config.slot_duration_minutes, 'room', all_branches, all_semesters)
 
         filename = "All_Timetables.xlsx"
 
