@@ -202,15 +202,16 @@ export default function Configuration() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // Fetch mapped faculties when semester changes
-  useEffect(() => {
+  const fetchMappedFaculties = useCallback(() => {
     if (selectedSemId) {
       axios.get(`${API_URL}/mappings/faculty/${selectedSemId}`).then(r => {
         let mapped = r.data;
-        const pendingDeletes = ops.filter(o => o.type === 'delete' && o.entity === 'mappings/faculty' && o.data?.faculty_id && o.entityId === selectedSemId);
+        const currentOps = usePendingChanges.getState().ops;
+        const pendingDeletes = currentOps.filter(o => o.type === 'delete' && o.entity === 'mappings/faculty' && o.data?.faculty_id && o.entityId === selectedSemId);
         pendingDeletes.forEach(delOp => {
           mapped = mapped.filter((f: any) => f.id !== delOp.data?.faculty_id);
         });
-        const pendingCreates = ops.filter(o => o.type === 'create' && o.entity === 'mappings/faculty' && o.data?.semester_id === selectedSemId);
+        const pendingCreates = currentOps.filter(o => o.type === 'create' && o.entity === 'mappings/faculty' && o.data?.semester_id === selectedSemId);
         pendingCreates.forEach(createOp => {
           const fac = faculties.find((f: any) => f.id === createOp.data?.faculty_id);
           if (fac && !mapped.find((m: any) => m.id === fac.id)) {
@@ -222,7 +223,11 @@ export default function Configuration() {
     } else {
       setMappedFaculties([]);
     }
-  }, [selectedSemId, ops, faculties]);
+  }, [selectedSemId, faculties]);
+
+  useEffect(() => {
+    fetchMappedFaculties();
+  }, [selectedSemId, fetchMappedFaculties]);
 
   const semSubjects = subjects.filter((s: any) => s.semester_id === selectedSemId);
 
@@ -476,11 +481,13 @@ export default function Configuration() {
                       showSaved();
                       invalidateCache();
                       await fetchAll();
+                      fetchMappedFaculties();
                     } else {
                       showError();
                       alert(result.error || 'Some changes failed to save.');
                       invalidateCache();
                       await fetchAll();
+                      fetchMappedFaculties();
                     }
                   }}
                   style={{
