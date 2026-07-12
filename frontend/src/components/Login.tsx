@@ -185,8 +185,8 @@ export const Login: React.FC = () => {
             }}
             onFocus={(e) => {
               e.target.removeAttribute('readonly');
-              (e.target as HTMLInputElement).style.borderColor = '#A78BFA';
-              (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(167, 139, 250, 0.15)';
+              (e.target as HTMLInputElement).style.borderColor = '#7C3AED';
+              (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.15)';
             }}
             onBlur={(e) => {
               (e.target as HTMLInputElement).style.borderColor = '#2E3345';
@@ -230,8 +230,8 @@ export const Login: React.FC = () => {
             }}
             onFocus={(e) => {
               e.target.removeAttribute('readonly');
-              (e.target as HTMLInputElement).style.borderColor = '#A78BFA';
-              (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(167, 139, 250, 0.15)';
+              (e.target as HTMLInputElement).style.borderColor = '#7C3AED';
+              (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.15)';
             }}
             onBlur={(e) => {
               (e.target as HTMLInputElement).style.borderColor = '#2E3345';
@@ -247,23 +247,20 @@ export const Login: React.FC = () => {
             padding: '14px',
             fontSize: '15px',
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
-            color: '#0D0F14',
+            background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+            color: '#FFFFFF',
             border: 'none',
             borderRadius: '14px',
             cursor: 'pointer',
             marginTop: '10px',
-            boxShadow: '0 6px 20px rgba(196,181,253,0.2)',
             transition: 'all 0.2s ease',
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-            (e.target as HTMLElement).style.boxShadow = '0 8px 24px rgba(196,181,253,0.35)';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(0)';
-            (e.target as HTMLElement).style.boxShadow = '0 6px 20px rgba(196,181,253,0.2)';
           }}
         >
           Sign In

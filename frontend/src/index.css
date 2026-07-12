@@ -6,8 +6,8 @@
   --color-themeBg: #0D0F14;
   --color-themeCard: #1C1F2A;
   --color-themeSurface: #262A36;
-  --color-themePrimary: #C4B5FD;
-  --color-themePrimaryHover: #A78BFA;
+  --color-themePrimary: #7C3AED;
+  --color-themePrimaryHover: #6D28D9;
   --color-themeSecondary: #67E8F9;
   --color-themeBorder: #2E3345;
   --color-themeGridLine: #2E3345;
@@ -28,6 +28,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #0D0F14;
   color: #E5E7EB;
+  color-scheme: dark;
 }
 
 /* Keyframe Animations */
@@ -67,28 +68,60 @@ body {
 
 /* EXTENDED THEME SYSTEM UTILITIES */
 .btn-primary {
-  background: linear-gradient(135deg, #C4B5FD, #A78BFA) !important;
-  color: #0D0F14 !important;
+  background: #7C3AED !important;
+  color: #FFFFFF !important;
   padding: 10px 18px !important;
   border-radius: 12px !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 8px rgba(196, 181, 253, 0.25) !important;
+  box-shadow: none !important;
   border: none !important;
   transition: all 0.2s ease !important;
   cursor: pointer;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #A78BFA, #8B5CF6) !important;
+  background: #6D28D9 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 16px rgba(196, 181, 253, 0.35) !important;
+  box-shadow: none !important;
 }
 
-input:focus,
-select:focus {
-  border-color: #C4B5FD !important;
-  box-shadow: 0 0 0 2px rgba(196, 181, 253, 0.2) !important;
+/* Custom Select Dropdown Styling */
+select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #161224 !important;
+  color: #E5E7EB !important;
+  border: 1px solid #3B2E60 !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E") !important;
+  background-position: right 0.75rem center !important;
+  background-size: 1.25rem 1.25rem !important;
+  background-repeat: no-repeat !important;
+  padding-right: 2.5rem !important;
+  transition: all 0.2s ease !important;
+  color-scheme: dark !important;
+}
+
+select:hover {
+  border-color: #7C3AED !important;
+}
+
+input:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
   outline: none !important;
+}
+
+select:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%238B5CF6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E") !important;
+  outline: none !important;
+}
+
+select option {
+  background-color: #161224 !important;
+  color: #E5E7EB !important;
 }
 
 @keyframes shimmer {

@@ -281,7 +281,7 @@ export default function MasterGrid() {
                 background: '#7C3AED', color: '#fff', border: 'none', borderRadius: '12px',
                 padding: '12px 8px', fontSize: '11px', fontWeight: 'bold', cursor: isFlushing ? 'wait' : 'pointer',
                 opacity: isFlushing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '4px',
-                boxShadow: '0 0 10px rgba(124, 58, 237, 0.3)', whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#6D28D9')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '#7C3AED')}
@@ -806,7 +806,7 @@ function AllocationModal({
                   <select required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
                     value={allocationData.subject_id} onChange={(e) => handleChange('subject_id', e.target.value)}>
                     <option value="">Select subject...</option>
-                    {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.weekly_hours}h/w)</option>)}
+                    {[...subjects].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.weekly_hours}h/w)</option>)}
                   </select>
                 </div>
 

@@ -310,8 +310,8 @@ export default function Dashboard() {
             padding: '16px 0',
             border: 'none',
             borderRadius: 14,
-            background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
-            color: '#0D0F14',
+            background: '#7C3AED',
+            color: '#FFFFFF',
             fontWeight: 700,
             fontSize: 15,
             cursor: 'pointer',
@@ -319,17 +319,16 @@ export default function Dashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            boxShadow: '0 6px 20px rgba(196,181,253,0.25)',
             transition: 'all 0.2s ease',
             fontFamily: "'Inter', sans-serif",
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-            (e.target as HTMLElement).style.boxShadow = '0 8px 28px rgba(196,181,253,0.4)';
+            (e.target as HTMLElement).style.backgroundColor = '#6D28D9';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.transform = 'translateY(0)';
-            (e.target as HTMLElement).style.boxShadow = '0 6px 20px rgba(196,181,253,0.25)';
+            (e.target as HTMLElement).style.backgroundColor = '#7C3AED';
           }}
         >
           <span style={{ fontSize: 20 }}>✨</span> New Timetable
@@ -804,7 +803,7 @@ export default function Dashboard() {
                               newBreaks[index].duration_minutes = parseInt(e.target.value);
                               setFormData({ ...formData, breaks: newBreaks });
                             }}
-                            style={{ ...inputStyle, background: '#1C1F2A', paddingRight: 10, appearance: 'none', MozAppearance: 'none', WebkitAppearance: 'none' }}
+                            style={{ ...inputStyle, backgroundColor: '#1C1F2A' }}
                           >
                             <option value={15}>15 mins</option>
                             <option value={30}>30 mins</option>
@@ -841,23 +840,22 @@ export default function Dashboard() {
                     padding: '14px 0',
                     border: 'none',
                     borderRadius: 14,
-                    background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
-                    color: '#0D0F14',
+                    background: '#7C3AED',
+                    color: '#FFFFFF',
                     fontWeight: 700,
                     fontSize: 15,
                     cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(196,181,253,0.25)',
                     transition: 'all 0.2s ease',
                     fontFamily: "'Inter', sans-serif",
                     letterSpacing: '-0.01em',
                   }}
                   onMouseEnter={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.target as HTMLElement).style.boxShadow = '0 10px 32px rgba(196,181,253,0.4)';
+                    (e.target as HTMLElement).style.backgroundColor = '#6D28D9';
                   }}
                   onMouseLeave={(e) => {
                     (e.target as HTMLElement).style.transform = 'translateY(0)';
-                    (e.target as HTMLElement).style.boxShadow = '0 6px 24px rgba(196,181,253,0.25)';
+                    (e.target as HTMLElement).style.backgroundColor = '#7C3AED';
                   }}
                 >
                   Next →
@@ -985,7 +983,7 @@ const inputStyle: React.CSSProperties = {
   padding: '12px 14px',
   borderRadius: 8,
   border: '1px solid #2E3345',
-  background: '#242838',
+  backgroundColor: '#242838',
   color: '#E5E7EB',
   fontSize: 14,
   fontWeight: 500,

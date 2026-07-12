@@ -204,16 +204,45 @@ export default function ExportPreview() {
       {/* ══════ LEFT PANEL ══════ */}
       <div className="w-[280px] min-w-[280px] border-r border-[#2E3345] flex flex-col bg-[#1C1F2A]">
         {/* Header */}
-        <div className="p-4 border-b border-[#2E3345] flex justify-between items-center bg-[#2E3345]">
+        <div className="p-4 border-b border-[#2E3345] flex justify-between items-center bg-[#131522]">
           <h2 className="text-lg font-bold text-[#E5E7EB]">Export Preview</h2>
-          <button onClick={() => navigate('/grid')} className="w-8 h-8 rounded-lg bg-themePrimary hover:bg-[#C4B5FD]/80 text-white flex items-center justify-center text-sm font-bold transition" title="Back to Grid">←</button>
+          <button onClick={() => navigate('/grid')} className="w-8 h-8 rounded-lg bg-[#7C3AED] hover:bg-[#8B5CF6] text-white flex items-center justify-center text-sm font-bold transition shadow-md" title="Back to Grid">←</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-[#2E3345]">
-          <button className={tabStyle('branch')} onClick={() => { setActiveTab('branch'); setSelectedType('master'); }}>Branch</button>
-          <button className={tabStyle('faculty')} onClick={() => { setActiveTab('faculty'); setSelectedType('master'); }}>Faculty</button>
-          <button className={tabStyle('room')} onClick={() => { setActiveTab('room'); setSelectedType('master'); }}>Room</button>
+        {/* Tabs Container */}
+        <div className="p-3 border-b border-[#2E3345]">
+          <div className="flex bg-[#0D0F14] p-1 rounded-xl border border-[#2E3345]">
+            <button
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider text-center cursor-pointer transition-all rounded-lg ${
+                activeTab === 'branch'
+                  ? 'bg-[#7C3AED] text-white shadow-md'
+                  : 'text-[#9CA3AF] hover:text-[#E5E7EB] hover:bg-[#262A36]'
+              }`}
+              onClick={() => { setActiveTab('branch'); setSelectedType('master'); }}
+            >
+              Branch
+            </button>
+            <button
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider text-center cursor-pointer transition-all rounded-lg ${
+                activeTab === 'faculty'
+                  ? 'bg-[#7C3AED] text-white shadow-md'
+                  : 'text-[#9CA3AF] hover:text-[#E5E7EB] hover:bg-[#262A36]'
+              }`}
+              onClick={() => { setActiveTab('faculty'); setSelectedType('master'); }}
+            >
+              Faculty
+            </button>
+            <button
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider text-center cursor-pointer transition-all rounded-lg ${
+                activeTab === 'room'
+                  ? 'bg-[#7C3AED] text-white shadow-md'
+                  : 'text-[#9CA3AF] hover:text-[#E5E7EB] hover:bg-[#262A36]'
+              }`}
+              onClick={() => { setActiveTab('room'); setSelectedType('master'); }}
+            >
+              Room
+            </button>
+          </div>
         </div>
 
         {/* Selection list */}
@@ -222,7 +251,7 @@ export default function ExportPreview() {
             <div className="space-y-1">
               <button
                 onClick={() => setSelectedType('master')}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold transition ${selectedType === 'master' ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold transition border ${selectedType === 'master' ? 'bg-[#7C3AED]/20 text-[#C4B5FD] border-[#7C3AED]/30' : 'text-[#E5E7EB] border-transparent hover:bg-[#262A36]'}`}
               >
                 📋 Master Timetable
               </button>
@@ -230,12 +259,12 @@ export default function ExportPreview() {
                 const branchSems = semesters.filter((s: any) => s.branch_id === b.id);
                 return (
                   <div key={b.id} className="mt-2">
-                    <div className="px-3 py-1.5 text-xs font-bold text-themeSecondary uppercase tracking-wider">{b.name}</div>
+                    <div className="px-3 py-1.5 text-xs font-bold text-[#C4B5FD] uppercase tracking-wider">{b.name}</div>
                     {branchSems.map((s: any) => (
                       <button
                         key={s.id}
                         onClick={() => setSelectedType(`semester:${s.id}`)}
-                        className={`w-full text-left px-3 py-2 pl-6 rounded-lg text-sm transition ${selectedType === `semester:${s.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMuted hover:bg-themePrimary/50 hover:text-themeTextMain'}`}
+                        className={`w-full text-left px-3 py-2 pl-6 rounded-lg text-sm transition border ${selectedType === `semester:${s.id}` ? 'bg-[#7C3AED]/20 text-[#C4B5FD] border-[#7C3AED]/30 font-bold' : 'text-[#9CA3AF] border-transparent hover:bg-[#262A36] hover:text-[#E5E7EB]'}`}
                       >
                         {s.name}
                       </button>
@@ -252,13 +281,13 @@ export default function ExportPreview() {
                 <button
                   key={f.id}
                   onClick={() => setSelectedType(`faculty:${f.id}`)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 ${selectedType === `faculty:${f.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 border ${selectedType === `faculty:${f.id}` ? 'bg-[#7C3AED]/20 text-[#C4B5FD] border-[#7C3AED]/30 font-bold' : 'text-[#9CA3AF] border-transparent hover:bg-[#262A36] hover:text-[#E5E7EB]'}`}
                 >
                   <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs flex items-center justify-center font-bold">{f.name?.[0]}</span>
                   {f.name}
                 </button>
               ))}
-              {faculties.length === 0 && <p className="text-themeTextMuted text-xs text-center py-4">No faculty found</p>}
+              {faculties.length === 0 && <p className="text-[#9CA3AF] text-xs text-center py-4">No faculty found</p>}
             </div>
           )}
 
@@ -268,13 +297,13 @@ export default function ExportPreview() {
                 <button
                   key={r.id}
                   onClick={() => setSelectedType(`room:${r.id}`)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 ${selectedType === `room:${r.id}` ? 'bg-themePrimary/20 text-themePrimary border border-blue-500/30 font-bold' : 'text-themeTextMain hover:bg-themePrimary/50'}`}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center gap-2 border ${selectedType === `room:${r.id}` ? 'bg-[#7C3AED]/20 text-[#C4B5FD] border-[#7C3AED]/30 font-bold' : 'text-[#9CA3AF] border-transparent hover:bg-[#262A36] hover:text-[#E5E7EB]'}`}
                 >
-                  <span className="w-6 h-6 rounded bg-emerald-500/20 text-themeSecondary text-xs flex items-center justify-center font-bold">🚪</span>
-                  {r.name} <span className="text-themeTextMuted text-xs ml-auto">Cap: {r.capacity}</span>
+                  <span className="w-6 h-6 rounded bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center font-bold">🚪</span>
+                  {r.name} <span className="text-[#9CA3AF] text-xs ml-auto">Cap: {r.capacity}</span>
                 </button>
               ))}
-              {rooms.length === 0 && <p className="text-themeTextMuted text-xs text-center py-4">No rooms found</p>}
+              {rooms.length === 0 && <p className="text-[#9CA3AF] text-xs text-center py-4">No rooms found</p>}
             </div>
           )}
         </div>
