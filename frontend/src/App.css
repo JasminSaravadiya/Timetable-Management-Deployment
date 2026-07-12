@@ -349,11 +349,10 @@
 }
 
 .sem-header-interactive:hover {
-  background: rgba(196, 181, 253, 0.12) !important;
-  color: #C4B5FD !important;
-  text-shadow: 0 0 12px rgba(196, 181, 253, 0.3);
-  outline: 2px dashed #7C3AED !important;
-  outline-offset: -2px;
+  background: #2D254F !important;
+  color: #DDD6FE !important;
+  text-shadow: 0 0 12px rgba(196, 181, 253, 0.5);
+  box-shadow: inset 0 0 0 2px #7C3AED !important;
 }
 
 .sem-header-interactive:hover::after {
