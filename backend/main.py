@@ -1339,6 +1339,13 @@ async def publish_timetable(config_id: int, db: AsyncSession = Depends(get_db)):
     _cache_invalidate()
     return {"status": "success", "published_at": published.published_at}
 
+@app.post("/api/unpublish")
+async def unpublish_timetable(db: AsyncSession = Depends(get_db)):
+    await db.execute(sa_delete(models.PublishedTimetable))
+    await db.commit()
+    _cache_invalidate()
+    return {"status": "success", "message": "Timetable unpublished successfully"}
+
 @app.get("/api/view/timetable")
 async def get_published_timetable(db: AsyncSession = Depends(get_db)):
     pub_result = await db.execute(select(models.PublishedTimetable).limit(1))

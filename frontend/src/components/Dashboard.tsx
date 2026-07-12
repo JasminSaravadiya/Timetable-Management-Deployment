@@ -349,8 +349,8 @@ export default function Dashboard() {
         </button>
 
         {/* Subtle divider and hint */}
-        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.35, fontSize: 11, lineHeight: 1.5, color: '#9CA3AF' }}>
-          Load opens file explorer<br />to find a saved <code>.json</code> file
+        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.8, fontSize: 16, lineHeight: 1.5, color: '#9CA3AF' }}>
+          Proudly Developed by<br /> - Enough Team
         </div>
       </aside>
 
@@ -473,144 +473,144 @@ export default function Dashboard() {
             [...allConfigs]
               .sort((a: any, b: any) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
               .map((c: Config, i: number) => (
-              <div
-                key={c.id ?? i}
-                onClick={() => handleLoad(c)}
-                style={{
-                  padding: '20px 24px',
-                  borderRadius: 16,
-                  background: '#1C1F2A',
-                  border: '1px solid #2E3345',
-                  borderLeft: `3px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}`,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  transition: 'all 0.25s ease',
-                  animation: `fadeInUp 0.4s ease ${i * 0.08}s both`,
-                  position: 'relative',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#262A36';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#3E4455';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = '#1C1F2A';
-                  (e.currentTarget as HTMLElement).style.borderColor = '#2E3345';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: `${CARD_ACCENTS[i % CARD_ACCENTS.length]}15`,
-                      border: `1px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}30`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 20,
-                      flexShrink: 0,
-                    }}
-                  >
-                    📅
-                  </div>
-                  <div>
-                    <h3
+                <div
+                  key={c.id ?? i}
+                  onClick={() => handleLoad(c)}
+                  style={{
+                    padding: '20px 24px',
+                    borderRadius: 16,
+                    background: '#1C1F2A',
+                    border: '1px solid #2E3345',
+                    borderLeft: `3px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.25s ease',
+                    animation: `fadeInUp 0.4s ease ${i * 0.08}s both`,
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#262A36';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#3E4455';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#1C1F2A';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#2E3345';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div
                       style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: '#E5E7EB',
-                        margin: 0,
-                        letterSpacing: '-0.01em',
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: `${CARD_ACCENTS[i % CARD_ACCENTS.length]}15`,
+                        border: `1px solid ${CARD_ACCENTS[i % CARD_ACCENTS.length]}30`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 20,
+                        flexShrink: 0,
                       }}
                     >
-                      {c.name || 'Untitled Timetable'}
-                    </h3>
-                    <p style={{ fontSize: 12, color: '#9CA3AF', margin: '4px 0 0' }}>
-                      {formatTime12(c.start_time)} – {formatTime12(c.end_time)} &nbsp;|&nbsp; {c.slot_duration_minutes}min slots
-                    </p>
+                      📅
+                    </div>
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 700,
+                          color: '#E5E7EB',
+                          margin: 0,
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {c.name || 'Untitled Timetable'}
+                      </h3>
+                      <p style={{ fontSize: 12, color: '#9CA3AF', margin: '4px 0 0' }}>
+                        {formatTime12(c.start_time)} – {formatTime12(c.end_time)} &nbsp;|&nbsp; {c.slot_duration_minutes}min slots
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {/* Publish button */}
+                    <button
+                      id={`btn-publish-${c.id}`}
+                      onClick={(e) => handlePublish(e, c.id!)}
+                      title="Publish Timetable to Student View"
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        border: '1px solid ' + ((c as any).last_published_at ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.3)'),
+                        background: (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)',
+                        color: (c as any).last_published_at ? '#34d399' : '#C4B5FD',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.2)' : 'rgba(167,139,250,0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)';
+                      }}
+                    >
+                      <span>🚀</span> {(c as any).last_published_at ? 'Publish Changes' : 'Publish'}
+                    </button>
+                    {/* Delete button */}
+                    <button
+                      id={`btn-delete-${c.id}`}
+                      onClick={(e) => handleDeleteTimetable(e, c.id!)}
+                      title="Delete timetable"
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 8,
+                        border: '1px solid rgba(239,68,68,0.25)',
+                        background: 'rgba(239,68,68,0.08)',
+                        color: '#f87171',
+                        fontSize: 15,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.2)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.08)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.25)';
+                      }}
+                    >
+                      🗑
+                    </button>
+                    <span
+                      style={{
+                        color: '#C4B5FD',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      Open <span style={{ fontSize: 18 }}>→</span>
+                    </span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {/* Publish button */}
-                  <button
-                    id={`btn-publish-${c.id}`}
-                    onClick={(e) => handlePublish(e, c.id!)}
-                    title="Publish Timetable to Student View"
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: '1px solid ' + ((c as any).last_published_at ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.3)'),
-                      background: (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)',
-                      color: (c as any).last_published_at ? '#34d399' : '#C4B5FD',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.2)' : 'rgba(167,139,250,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = (c as any).last_published_at ? 'rgba(52,211,153,0.1)' : 'rgba(167,139,250,0.1)';
-                    }}
-                  >
-                    <span>🚀</span> {(c as any).last_published_at ? 'Publish Changes' : 'Publish'}
-                  </button>
-                  {/* Delete button */}
-                  <button
-                    id={`btn-delete-${c.id}`}
-                    onClick={(e) => handleDeleteTimetable(e, c.id!)}
-                    title="Delete timetable"
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 8,
-                      border: '1px solid rgba(239,68,68,0.25)',
-                      background: 'rgba(239,68,68,0.08)',
-                      color: '#f87171',
-                      fontSize: 15,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.15s ease',
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.2)';
-                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.5)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.08)';
-                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.25)';
-                    }}
-                  >
-                    🗑
-                  </button>
-                  <span
-                    style={{
-                      color: '#C4B5FD',
-                      fontWeight: 600,
-                      fontSize: 14,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    Open <span style={{ fontSize: 18 }}>→</span>
-                  </span>
-                </div>
-              </div>
-            ))
+              ))
           )}
         </div>
       </main>

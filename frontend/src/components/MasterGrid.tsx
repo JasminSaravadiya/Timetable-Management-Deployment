@@ -186,6 +186,29 @@ export default function MasterGrid() {
     }
   };
 
+  const handleUnpublish = async () => {
+    if (hasPendingChanges()) {
+      alert("Please save all changes before unpublishing.");
+      return;
+    }
+    if (!currentConfig?.id) return;
+    if (!window.confirm('Are you sure you want to unpublish? Students will no longer see this timetable.')) return;
+    try {
+      await withLoading(async () => {
+        await axios.post(`${API_URL}/unpublish`);
+        alert('Timetable unpublished successfully!');
+        const res = await axios.get(`${API_URL}/config`);
+        const updated = res.data.find((c: any) => c.id === currentConfig.id);
+        if (updated) {
+          useStore.getState().setConfig(updated);
+        }
+      }, 'Unpublishing...');
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to unpublish: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
   const handleHighlightCollidingCell = (collidingAlloc: any) => {
     setIsModalOpen(false);
     setSelectedCell(null);
@@ -328,6 +351,25 @@ export default function MasterGrid() {
           >
             <span>🚀</span> {(currentConfig as any)?.last_published_at ? 'Publish Changes' : 'Publish Timetable'}
           </button>
+
+          {(currentConfig as any)?.last_published_at && (
+            <button
+              onClick={handleUnpublish}
+              disabled={isFlushing}
+              title="Unpublish Timetable"
+              style={{
+                background: 'rgba(245,158,11,0.1)', 
+                color: '#F59E0B', 
+                border: '1px solid rgba(245,158,11,0.3)', 
+                borderRadius: '12px',
+                padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', cursor: isFlushing ? 'wait' : 'pointer',
+                opacity: isFlushing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Unpublish
+            </button>
+          )}
 
           <button
             disabled={isFlushing}
