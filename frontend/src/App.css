@@ -349,20 +349,28 @@
 }
 
 .sem-header-interactive:hover {
-  background: rgba(196, 181, 253, 0.08) !important;
+  background: rgba(196, 181, 253, 0.12) !important;
   color: #C4B5FD !important;
   text-shadow: 0 0 12px rgba(196, 181, 253, 0.3);
+  outline: 2px dashed #7C3AED !important;
+  outline-offset: -2px;
 }
 
 .sem-header-interactive:hover::after {
-  content: '⏎';
+  content: 'Double-click to open';
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 10px;
-  color: #C4B5FD;
-  opacity: 0.5;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #A78BFA;
+  opacity: 0.9;
+  white-space: nowrap;
+  font-weight: normal;
+  background: #1C1F2A;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(196, 181, 253, 0.2);
 }
 
 /* Semester view slide-in animation */

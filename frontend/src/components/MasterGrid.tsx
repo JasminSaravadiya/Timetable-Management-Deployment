@@ -56,6 +56,7 @@ export default function MasterGrid() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: string, time: string, semId: number, allocationId?: number } | null>(null);
+  const [highlightedCell, setHighlightedCell] = useState<{ day: string, time: string, semId: number } | null>(null);
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -160,6 +161,31 @@ export default function MasterGrid() {
     if (!confirm('Remove this allocation?')) return;
     setAllocations(prev => prev.filter((a: any) => a.id !== id));
     addOp({ type: 'delete', entity: 'allocations', entityId: id });
+  };
+
+  const handleHighlightCollidingCell = (collidingAlloc: any) => {
+    setIsModalOpen(false);
+    setSelectedCell(null);
+    setViewMode('master');
+    setActiveSemContext(null);
+
+    const target = {
+      day: collidingAlloc.day_of_week,
+      time: collidingAlloc.start_time,
+      semId: collidingAlloc.semester_id
+    };
+    setHighlightedCell(target);
+
+    setTimeout(() => {
+      const el = document.getElementById(`cell-${target.day}-${target.time}-${target.semId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }, 150);
+
+    setTimeout(() => {
+      setHighlightedCell(null);
+    }, 5000);
   };
 
   return (
@@ -276,154 +302,160 @@ export default function MasterGrid() {
             slotDuration={currentConfig?.slot_duration_minutes || 60}
           />
         ) : (
-        <div
-          className="rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm shadow-2xl"
-          style={{ display: 'inline-block', minWidth: '100%' }}
-        >
+          <div
+            className="rounded-2xl border border-[#2E3345] bg-[#1C1F2A] backdrop-blur-sm shadow-2xl"
+            style={{ display: 'inline-block', minWidth: '100%' }}
+          >
 
-          <table className="border-collapse border border-[#2E3345]" style={{ width: 'max-content', minWidth: '100%' }}>
-            {/* Table Header: Branches and Semesters */}
-            <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
-              <tr>
-                <th className="border-r border-[#2E3345] p-3 min-w-[60px] bg-[#262A36] z-30 sticky left-0 shadow-sm text-[#E5E7EB]" rowSpan={2}>Day</th>
-                <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-[60px] shadow-sm text-[#E5E7EB]" rowSpan={2}>Time</th>
-                {branches.map((b: any) => {
-                  const sems = semesters.filter((s: any) => s.branch_id === b.id);
-                  if (sems.length === 0) return null;
+            <table className="border-collapse border border-[#2E3345]" style={{ width: 'max-content', minWidth: '100%' }}>
+              {/* Table Header: Branches and Semesters */}
+              <thead className="bg-[#262A36] border-b border-[#2E3345] sticky top-0 z-20">
+                <tr>
+                  <th className="border-r border-[#2E3345] p-3 min-w-[60px] bg-[#262A36] z-30 sticky left-0 shadow-sm text-[#E5E7EB]" rowSpan={2}>Day</th>
+                  <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-[60px] shadow-sm text-[#E5E7EB]" rowSpan={2}>Time</th>
+                  {branches.map((b: any) => {
+                    const sems = semesters.filter((s: any) => s.branch_id === b.id);
+                    if (sems.length === 0) return null;
+                    return (
+                      <th key={b.id} colSpan={sems.length} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36]">
+                        {b.name}
+                      </th>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  {branches.map((b: any) => {
+                    const sems = semesters.filter((s: any) => s.branch_id === b.id);
+                    return sems.map((s: any) => (
+                      <th
+                        key={s.id}
+                        className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px] sem-header-interactive"
+                        onDoubleClick={() => handleSemesterDoubleClick(b.id, s.id, b.name, s.name)}
+                        title="Double-click to view semester timetable"
+                      >
+                        {s.name}
+                      </th>
+                    ));
+                  })}
+                </tr>
+              </thead>
+
+              {/* Table Body */}
+              <tbody>
+                {DAYS.map((day) => {
+                  const daySlots = timeslots;
+                  const totalSems = semesters.length;
+                  const coveredCells = new Set<string>();
+
                   return (
-                    <th key={b.id} colSpan={sems.length} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36]">
-                      {b.name}
-                    </th>
-                  );
-                })}
-              </tr>
-              <tr>
-                {branches.map((b: any) => {
-                  const sems = semesters.filter((s: any) => s.branch_id === b.id);
-                  return sems.map((s: any) => (
-                    <th
-                      key={s.id}
-                      className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px] sem-header-interactive"
-                      onDoubleClick={() => handleSemesterDoubleClick(b.id, s.id, b.name, s.name)}
-                      title="Double-click to view semester timetable"
-                    >
-                      {s.name}
-                    </th>
-                  ));
-                })}
-              </tr>
-            </thead>
+                    <React.Fragment key={day}>
+                      {/* Timeslot Rows */}
+                      {daySlots.map((timeObj: any, timeIndex: number) => {
+                        const time = timeObj.start;
+                        const isFirstSlotOfDay = timeIndex === 0;
 
-            {/* Table Body */}
-            <tbody>
-              {DAYS.map((day) => {
-                const daySlots = timeslots;
-                const totalSems = semesters.length;
-                const coveredCells = new Set<string>();
-
-                return (
-                  <React.Fragment key={day}>
-                    {/* Timeslot Rows */}
-                    {daySlots.map((timeObj: any, timeIndex: number) => {
-                      const time = timeObj.start;
-                      const isFirstSlotOfDay = timeIndex === 0;
-
-                      return (
-                        <tr key={`${day}-${time}`} className="group transition">
-                          {isFirstSlotOfDay && (
-                            <td
-                              rowSpan={daySlots.length}
-                              className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-10 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
-                            >
-                              <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
-                                {day.toUpperCase()}
-                              </div>
+                        return (
+                          <tr key={`${day}-${time}`} className="group transition">
+                            {isFirstSlotOfDay && (
+                              <td
+                                rowSpan={daySlots.length}
+                                className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-10 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
+                              >
+                                <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
+                                  {day.toUpperCase()}
+                                </div>
+                              </td>
+                            )}
+                            <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
+                              {timeObj.display}
                             </td>
-                          )}
-                          <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
-                            {timeObj.display}
-                          </td>
 
-                          {/* If it's a Break Slot */}
-                          {timeObj.type === 'break' && (
-                            <td colSpan={totalSems} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                --------- BREAK ---------
-                              </div>
-                            </td>
-                          )}
+                            {/* If it's a Break Slot */}
+                            {timeObj.type === 'break' && (
+                              <td colSpan={totalSems} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  --------- BREAK ---------
+                                </div>
+                              </td>
+                            )}
 
-                          {/* If it's a Normal Slot */}
-                          {timeObj.type === 'slot' && branches.map((b: any) => {
-                            const sems = semesters.filter((s: any) => s.branch_id === b.id);
-                            return sems.map((s: any) => {
-                              const cellKey = `${s.id}-${timeIndex}`;
-                              if (coveredCells.has(cellKey)) {
-                                return null; // Skip rendering this cell since it's spanned over
-                              }
-
-                              const cellAllocs = getAllocationsForCell(day, time, s.id);
-
-                              // Calculate max rowSpan based on all allocations in this cell
-                              let maxSpan = 1;
-                              if (cellAllocs.length > 0 && currentConfig?.slot_duration_minutes) {
-                                const maxDuration = Math.max(...cellAllocs.map((a: any) => a.duration_minutes));
-                                maxSpan = Math.max(1, Math.ceil(maxDuration / currentConfig.slot_duration_minutes));
-                              }
-
-                              // Mark future cells as covered - considering breaks logic too, assuming allocations don't cross breaks generally
-                              if (maxSpan > 1) {
-                                for (let i = 1; i < maxSpan; i++) {
-                                  coveredCells.add(`${s.id}-${timeIndex + i}`);
+                            {/* If it's a Normal Slot */}
+                            {timeObj.type === 'slot' && branches.map((b: any) => {
+                              const sems = semesters.filter((s: any) => s.branch_id === b.id);
+                              return sems.map((s: any) => {
+                                const cellKey = `${s.id}-${timeIndex}`;
+                                if (coveredCells.has(cellKey)) {
+                                  return null; // Skip rendering this cell since it's spanned over
                                 }
-                              }
 
-                              return (
-                                <td
-                                  key={`${day}-${time}-${s.id}`}
-                                  rowSpan={maxSpan}
-                                  className="border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors duration-200 align-top"
-                                  onClick={() => handleCellClick(day, time, s.id)}
-                                >
-                                  <div className="flex flex-col gap-1 w-full h-full">
-                                    {cellAllocs.length === 0 ? (
-                                      <div className="w-full h-full min-h-[60px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-[#9CA3AF] font-bold text-xl">+</span>
-                                      </div>
+                                const cellAllocs = getAllocationsForCell(day, time, s.id);
+
+                                // Calculate max rowSpan based on all allocations in this cell
+                                let maxSpan = 1;
+                                if (cellAllocs.length > 0 && currentConfig?.slot_duration_minutes) {
+                                  const maxDuration = Math.max(...cellAllocs.map((a: any) => a.duration_minutes));
+                                  maxSpan = Math.max(1, Math.ceil(maxDuration / currentConfig.slot_duration_minutes));
+                                }
+
+                                // Mark future cells as covered - considering breaks logic too, assuming allocations don't cross breaks generally
+                                if (maxSpan > 1) {
+                                  for (let i = 1; i < maxSpan; i++) {
+                                    coveredCells.add(`${s.id}-${timeIndex + i}`);
+                                  }
+                                }
+
+                                const isHighlighted = highlightedCell &&
+                                  highlightedCell.day === day &&
+                                  highlightedCell.time === time &&
+                                  highlightedCell.semId === s.id;
+
+                                return (
+                                  <td
+                                    id={`cell-${day}-${time}-${s.id}`}
+                                    key={`${day}-${time}-${s.id}`}
+                                    rowSpan={maxSpan}
+                                    className={`border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-all duration-300 align-top ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-[#0D0F14] z-30 animate-pulse bg-yellow-400/20' : ''}`}
+                                    onClick={() => handleCellClick(day, time, s.id)}
+                                  >
+                                    <div className="flex flex-col gap-1 w-full h-full">
+                                      {cellAllocs.length === 0 ? (
+                                        <div className="w-full h-full min-h-[60px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <span className="text-[#9CA3AF] font-bold text-xl">+</span>
+                                        </div>
                                       ) : (
                                         <>
-                                      {/* Split batches horizontally logic handled by flex row if many, or col if full scale */}
-                                      <div className={`flex gap-1 w-full h-full ${cellAllocs.length > 1 ? 'flex-row' : 'flex-col'}`}>
-                                        {cellAllocs.map((a: any, allocIdx: number) => {
-                                          const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
-                                          return (
-                                            <div
-                                              key={a.id}
-                                              className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
-                                              style={{
-                                                background: colorScheme.bg,
-                                                border: `1px solid ${colorScheme.border}`,
-                                              }}
-                                              onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
-                                            >
-                                              <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
-                                                {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
-                                              </div>
-                                              <div className="text-[#67E8F9] text-xs mt-1 truncate">
-                                                {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
-                                              </div>
-                                              <div className="flex justify-between mt-1 items-center gap-1">
-                                                <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
-                                                  {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
-                                                </span>
-                                                {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                      {/* Hover + indicator for adding another entry */}
-                                          <div 
+                                          {/* Split batches horizontally logic handled by flex row if many, or col if full scale */}
+                                          <div className={`flex gap-1 w-full h-full ${cellAllocs.length > 1 ? 'flex-row' : 'flex-col'}`}>
+                                            {cellAllocs.map((a: any, allocIdx: number) => {
+                                              const colorScheme = SUBJECT_COLORS[allocIdx % SUBJECT_COLORS.length];
+                                              return (
+                                                <div
+                                                  key={a.id}
+                                                  className="rounded-lg p-2 flex-1 shadow flex flex-col justify-center min-w-[80px] relative group/alloc cursor-pointer transition-all duration-200"
+                                                  style={{
+                                                    background: colorScheme.bg,
+                                                    border: `1px solid ${colorScheme.border}`,
+                                                  }}
+                                                  onClick={(e) => { e.stopPropagation(); setSelectedCell({ day, time, semId: s.id, allocationId: a.id }); setIsModalOpen(true); }}
+                                                >
+                                                  <div className="font-bold text-xs truncate" style={{ color: colorScheme.text }} title={(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name}>
+                                                    {(subjects.find((sub: any) => sub.id === a.subject_id) as any)?.name || `Sub ${a.subject_id}`}
+                                                  </div>
+                                                  <div className="text-[#67E8F9] text-xs mt-1 truncate">
+                                                    {(faculties.find((f: any) => f.id === a.faculty_id) as any)?.name}
+                                                  </div>
+                                                  <div className="flex justify-between mt-1 items-center gap-1">
+                                                    <span className="text-[#9CA3AF] text-[10px] bg-[#262A36] px-1 rounded truncate max-w-[50%]">
+                                                      {(rooms.find((r: any) => r.id === a.room_id) as any)?.name}
+                                                    </span>
+                                                    {a.batches && a.batches.length > 0 && <span className="text-[#FDE68A] text-[10px] font-bold truncate max-w-[50%]">{a.batches.join(', ')}</span>}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                          {/* Hover + indicator for adding another entry */}
+                                          <div
                                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                             onClick={(e) => { e.stopPropagation(); handleCellClick(day, time, s.id); }}
                                           >
@@ -433,21 +465,21 @@ export default function MasterGrid() {
                                           </div>
                                         </>
                                       )}
-                                  </div>
-                                </td>
-                              );
-                            });
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                                    </div>
+                                  </td>
+                                );
+                              });
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
 
-        </div>
+          </div>
         )}
       </div>
 
@@ -478,6 +510,11 @@ export default function MasterGrid() {
             setSelectedCell(null);
           }}
           allocations={allocations}
+          branches={branches}
+          semesters={semesters}
+          globalSubjects={subjects}
+          globalRooms={rooms}
+          onHighlightCollidingCell={handleHighlightCollidingCell}
         />
       )}
 
@@ -487,7 +524,29 @@ export default function MasterGrid() {
 }
 
 // Subcomponent for Allocation
-function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocations }: { cell: any, onClose: any, onSaveLocal: (allocation: any, isEdit: boolean) => void, onDeleteLocal: (id: number) => void, allocations: any[] }) {
+function AllocationModal({
+  cell,
+  onClose,
+  onSaveLocal,
+  onDeleteLocal,
+  allocations,
+  branches,
+  semesters,
+  globalSubjects,
+  globalRooms,
+  onHighlightCollidingCell
+}: {
+  cell: any,
+  onClose: any,
+  onSaveLocal: (allocation: any, isEdit: boolean) => void,
+  onDeleteLocal: (id: number) => void,
+  allocations: any[],
+  branches: any[],
+  semesters: any[],
+  globalSubjects: any[],
+  globalRooms: any[],
+  onHighlightCollidingCell?: (collidingAlloc: any) => void
+}) {
   const { currentConfig } = useStore();
   const isEditing = !!cell.allocationId;
   const existingAlloc = isEditing ? allocations.find((a: any) => a.id === cell.allocationId) : null;
@@ -505,6 +564,11 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [collidingAlloc, setCollidingAlloc] = useState<any | null>(null);
+
+  const initialDuration = existingAlloc?.duration_minutes || currentConfig?.slot_duration_minutes || 60;
+  const initialSelectVal = (initialDuration === 60 || initialDuration === 120) ? String(initialDuration) : 'custom';
+  const [durationSelect, setDurationSelect] = useState<string>(initialSelectVal);
 
   // Fetch contextual mapped data for this semester
   useEffect(() => {
@@ -523,6 +587,8 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
 
   const handleChange = (field: string, value: any) => {
     setAllocationData(prev => ({ ...prev, [field]: value }));
+    setErrorMsg('');
+    setCollidingAlloc(null);
   };
 
   const handleDelete = () => {
@@ -534,6 +600,7 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setCollidingAlloc(null);
 
     if (!allocationData.subject_id || !allocationData.faculty_id || !allocationData.room_id || !allocationData.duration_minutes) {
       setErrorMsg('Please fill all required fields.');
@@ -576,26 +643,37 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
 
     // --- Local Collision Check ---
     const ignoreFacultyCollision = selectedFac?.ignore_collision === true;
-    
+
     // Parse proposed times
     const newStart = parse(allocation.start_time, 'HH:mm:ss', new Date());
     const newEnd = addMinutes(newStart, allocation.duration_minutes);
-    
+
     for (const a of allocations) {
       if (isEditing && a.id === cell.allocationId) continue;
 
       if (a.day_of_week === allocation.day_of_week) {
         const extStart = parse(a.start_time, 'HH:mm:ss', new Date());
         const extEnd = addMinutes(extStart, a.duration_minutes);
-        
+
         // Check overlap: max(start1, start2) < min(end1, end2)
         const maxStart = isBefore(newStart, extStart) ? extStart : newStart;
         const minEnd = isBefore(newEnd, extEnd) ? newEnd : extEnd;
-        
+
         if (isBefore(maxStart, minEnd)) {
           // Faculty Collision
           if (!ignoreFacultyCollision && a.faculty_id && a.faculty_id === allocation.faculty_id) {
-            setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching another class at this time.`);
+            const collidingSub = globalSubjects.find((s: any) => s.id === a.subject_id);
+            const collidingSem = semesters.find((s: any) => s.id === a.semester_id);
+            const collidingBranch = collidingSem ? branches.find((b: any) => b.id === collidingSem.branch_id) : null;
+            const collidingRoom = globalRooms.find((r: any) => r.id === a.room_id);
+
+            const branchName = collidingBranch?.name || '';
+            const semName = collidingSem?.name || '';
+            const roomName = collidingRoom?.name || '';
+            const subName = collidingSub?.name || 'another class';
+
+            setErrorMsg(`Faculty ${selectedFac?.name || ''} is already teaching ${subName} in ${branchName} ${semName} (Room ${roomName}) on ${a.day_of_week} at ${a.start_time.substring(0, 5)}.`);
+            setCollidingAlloc(a);
             return;
           }
         }
@@ -617,7 +695,23 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
           </div>
         </div>
 
-        {errorMsg && <div className="bg-red-900/40 border border-red-500/50 text-red-300 p-3 rounded-lg mb-4 text-sm font-semibold shrink-0 shadow-sm">{errorMsg}</div>}
+        {errorMsg && (
+          <div
+            className={`bg-red-900/40 border border-red-500/50 text-red-300 p-3 rounded-lg mb-4 text-sm font-semibold shrink-0 shadow-sm transition ${collidingAlloc ? 'cursor-pointer hover:bg-red-950/60 hover:text-red-200' : ''}`}
+            onClick={() => {
+              if (collidingAlloc && onHighlightCollidingCell) {
+                onHighlightCollidingCell(collidingAlloc);
+              }
+            }}
+          >
+            {errorMsg}
+            {collidingAlloc && (
+              <div className="text-[11px] text-[#FDE68A] font-bold mt-1.5 flex items-center gap-1 hover:underline">
+                🔍 Click here to locate and highlight this cell in the Master Grid
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-hidden h-full">
@@ -666,9 +760,32 @@ function AllocationModal({ cell, onClose, onSaveLocal, onDeleteLocal, allocation
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Duration (mins)</label>
-                    <input type="number" required className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
-                      value={allocationData.duration_minutes} onChange={(e) => handleChange('duration_minutes', parseInt(e.target.value))} />
+                    <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Duration</label>
+                    <select
+                      className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm mb-2"
+                      value={durationSelect}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDurationSelect(val);
+                        if (val !== 'custom') {
+                          handleChange('duration_minutes', parseInt(val));
+                        }
+                      }}
+                    >
+                      <option value="60">1 Hour (60 mins)</option>
+                      <option value="120">2 Hours (120 mins)</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    {durationSelect === 'custom' && (
+                      <input
+                        type="number"
+                        required
+                        placeholder="Enter minutes..."
+                        className="w-full bg-[#242838] border border-[#2E3345] rounded-lg p-2.5 text-[#E5E7EB] text-sm transition shadow-sm"
+                        value={allocationData.duration_minutes}
+                        onChange={(e) => handleChange('duration_minutes', parseInt(e.target.value) || '')}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[#9CA3AF] text-[11px] font-bold uppercase tracking-wider mb-1.5">Batches (Comma separated)</label>
@@ -713,6 +830,8 @@ function SemesterView({ semContext, timeslots, allocations, subjects, faculties,
   const getAllocsForCell = (day: string, time: string) => {
     return semAllocations.filter((a: any) => a.day_of_week === day && a.start_time === time);
   };
+
+  const coveredCells = new Set<string>();
 
   return (
     <div className="semester-view-enter" style={{ minWidth: '100%', display: 'inline-block' }}>
@@ -769,11 +888,29 @@ function SemesterView({ semContext, timeslots, allocations, subjects, faculties,
 
                   {/* Normal slot cells for each day */}
                   {timeObj.type === 'slot' && DAYS.map((day) => {
+                    const cellKey = `${day}-${timeIndex}`;
+                    if (coveredCells.has(cellKey)) {
+                      return null;
+                    }
+
                     const cellAllocs = getAllocsForCell(day, time);
+
+                    let maxSpan = 1;
+                    if (cellAllocs.length > 0 && slotDuration) {
+                      const maxDuration = Math.max(...cellAllocs.map((a: any) => a.duration_minutes));
+                      maxSpan = Math.max(1, Math.ceil(maxDuration / slotDuration));
+                    }
+
+                    if (maxSpan > 1) {
+                      for (let i = 1; i < maxSpan; i++) {
+                        coveredCells.add(`${day}-${timeIndex + i}`);
+                      }
+                    }
 
                     return (
                       <td
                         key={`${day}-${time}`}
+                        rowSpan={maxSpan}
                         className="border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-colors duration-200 align-top"
                         onClick={() => onCellClick(day, time, semContext.semId)}
                       >
