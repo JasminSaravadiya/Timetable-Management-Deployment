@@ -180,6 +180,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleUnpublish = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to unpublish this timetable? Students will no longer be able to view it.')) return;
+    try {
+      await withLoading(async () => {
+        await axios.post(`${API_URL}/unpublish?config_id=${id}`);
+        await fetchConfigs();
+      }, 'Unpublishing timetable...');
+      alert('Timetable unpublished successfully!');
+    } catch (err: any) {
+      console.error('[Unpublish timetable error]', err);
+      alert(`Failed to unpublish: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
   const handleDeleteTimetable = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation(); // prevent card click from firing
     if (!window.confirm('Are you sure you want to delete this timetable and ALL its data? This cannot be undone.')) return;
@@ -349,8 +364,8 @@ export default function Dashboard() {
         </button>
 
         {/* Subtle divider and hint */}
-        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.8, fontSize: 12, lineHeight: 1.5, color: '#9CA3AF' }}>
-          Proudly Developed by<br /> - Enough Team
+        <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 1, fontSize: 18, lineHeight: 1.5, color: '#9CA3AF' }}>
+          Proudly Developed by<br /> - <code>Enough Team</code>
         </div>
       </aside>
 
@@ -536,6 +551,30 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {(c as any).last_published_at && (
+                      <button
+                        onClick={(e) => handleUnpublish(e, c.id!)}
+                        title="Unpublish Timetable"
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(239,68,68,0.3)',
+                          background: 'rgba(239,68,68,0.1)',
+                          color: '#f87171',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+                      >
+                        <span>🚫</span> Unpublish
+                      </button>
+                    )}
                     {/* Publish button */}
                     <button
                       id={`btn-publish-${c.id}`}
