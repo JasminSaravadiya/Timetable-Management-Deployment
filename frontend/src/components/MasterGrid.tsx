@@ -57,6 +57,7 @@ export default function MasterGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: string, time: string, semId: number, allocationId?: number } | null>(null);
   const [highlightedCell, setHighlightedCell] = useState<{ day: string, time: string, semId: number } | null>(null);
+  const [selectedDayFilter, setSelectedDayFilter] = useState<string>('All');
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -201,6 +202,50 @@ export default function MasterGrid() {
           </p>
         </div>
         <div className="flex gap-4 items-center">
+          {/* View Selection Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#9CA3AF] font-bold uppercase tracking-wider">View:</span>
+            <select
+              className="bg-[#242838] border border-[#2E3345] rounded-xl p-2.5 text-[#E5E7EB] text-sm font-semibold transition shadow-sm focus:border-[#7C3AED] focus:outline-none cursor-pointer hover:border-[#7C3AED]/50"
+              value={viewMode === 'master' ? 'master' : activeSemContext?.semId || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'master') {
+                  setViewMode('master');
+                  setActiveSemContext(null);
+                } else {
+                  const semId = parseInt(val);
+                  const selectedSem = semesters.find((s: any) => s.id === semId) as any;
+                  if (selectedSem) {
+                    const branch = branches.find((b: any) => b.id === selectedSem.branch_id) as any;
+                    setViewMode('semester');
+                    setActiveSemContext({
+                      branchId: selectedSem.branch_id,
+                      semId: selectedSem.id,
+                      branchName: branch?.name || '',
+                      semName: selectedSem.name
+                    });
+                  }
+                }
+              }}
+            >
+              <option value="master">Master Timetable Grid</option>
+              {branches.map((b: any) => {
+                const sems = semesters.filter((s: any) => s.branch_id === b.id);
+                if (sems.length === 0) return null;
+                return (
+                  <optgroup key={b.id} label={b.name} className="bg-[#1C1F2A] text-[#9CA3AF] font-bold">
+                    {sems.map((s: any) => (
+                      <option key={s.id} value={s.id} className="text-[#E5E7EB] font-normal">
+                        {b.name} — {s.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </div>
+
           {/* Save status feedback */}
           {saveStatus !== 'idle' && (
             <span style={{
@@ -280,6 +325,39 @@ export default function MasterGrid() {
         </div>
       </div>
 
+      {/* Day filter tabs for Master Grid view */}
+      {viewMode === 'master' && (
+        <div className="bg-[#1C1F2A] px-4 py-3 border-b border-[#2E3345] flex items-center justify-between shadow-md" style={{ flexShrink: 0 }}>
+          <div className="flex gap-2 bg-[#0D0F14] p-1 rounded-xl border border-[#2E3345]">
+            <button
+              onClick={() => setSelectedDayFilter('All')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${selectedDayFilter === 'All'
+                ? 'bg-[#7C3AED] text-white shadow-md'
+                : 'text-[#9CA3AF] hover:text-[#E5E7EB] hover:bg-[#262A36]'
+                }`}
+            >
+              All Days
+            </button>
+            {DAYS.map((day) => (
+              <button
+                key={day}
+                onClick={() => setSelectedDayFilter(day)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${selectedDayFilter === day
+                  ? 'bg-[#7C3AED] text-white shadow-md'
+                  : 'text-[#9CA3AF] hover:text-[#E5E7EB] hover:bg-[#262A36]'
+                  }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-[#9CA3AF] font-medium hidden sm:inline-flex items-center gap-1.5 bg-[#262A36]/50 px-3 py-1.5 rounded-lg border border-[#2E3345]">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
+            Filter days to focus your view
+          </span>
+        </div>
+      )}
+
       {/* Scroll Container — this div provides BOTH horizontal and vertical scroll bars */}
       <div
         className="flex-1 relative custom-scrollbar"
@@ -313,11 +391,12 @@ export default function MasterGrid() {
                 <tr>
                   <th className="border-r border-[#2E3345] p-3 min-w-[60px] bg-[#262A36] z-30 sticky left-0 shadow-sm text-[#E5E7EB]" rowSpan={2}>Day</th>
                   <th className="border-r border-[#2E3345] p-3 min-w-[120px] bg-[#262A36] z-30 sticky left-[60px] shadow-sm text-[#E5E7EB]" rowSpan={2}>Time</th>
-                  {branches.map((b: any) => {
+                  {branches.map((b: any, bIdx: number) => {
                     const sems = semesters.filter((s: any) => s.branch_id === b.id);
                     if (sems.length === 0) return null;
+                    const isLastBranch = bIdx === branches.length - 1;
                     return (
-                      <th key={b.id} colSpan={sems.length} className="border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36]">
+                      <th key={b.id} colSpan={sems.length} className={`border-r border-[#2E3345] p-3 text-center font-bold text-[#C4B5FD] uppercase tracking-widest text-sm bg-[#262A36] ${!isLastBranch ? 'border-r-[6px] border-r-[#2E3345]' : ''}`}>
                         {b.name}
                       </th>
                     );
@@ -326,23 +405,24 @@ export default function MasterGrid() {
                 <tr>
                   {branches.map((b: any) => {
                     const sems = semesters.filter((s: any) => s.branch_id === b.id);
-                    return sems.map((s: any) => (
-                      <th
-                        key={s.id}
-                        className="border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px] sem-header-interactive"
-                        onDoubleClick={() => handleSemesterDoubleClick(b.id, s.id, b.name, s.name)}
-                        title="Double-click to view semester timetable"
-                      >
-                        {s.name}
-                      </th>
-                    ));
+                    return sems.map((s: any, sIdx: number) => {
+                      const isLastSem = sIdx === sems.length - 1;
+                      return (
+                        <th
+                          key={s.id}
+                          className={`border-r border-[#2E3345] p-2 text-center text-sm font-semibold text-[#E5E7EB] bg-[#262A36] min-w-[200px] ${isLastSem ? 'border-r-[6px] border-r-[#2E3345]' : ''}`}
+                        >
+                          {s.name}
+                        </th>
+                      );
+                    });
                   })}
                 </tr>
               </thead>
 
               {/* Table Body */}
               <tbody>
-                {DAYS.map((day) => {
+                {DAYS.filter(d => selectedDayFilter === 'All' || d === selectedDayFilter).map((day) => {
                   const daySlots = timeslots;
                   const totalSems = semesters.length;
                   const coveredCells = new Set<string>();
@@ -353,26 +433,27 @@ export default function MasterGrid() {
                       {daySlots.map((timeObj: any, timeIndex: number) => {
                         const time = timeObj.start;
                         const isFirstSlotOfDay = timeIndex === 0;
+                        const isLastSlot = timeIndex === daySlots.length - 1;
 
                         return (
                           <tr key={`${day}-${time}`} className="group transition">
                             {isFirstSlotOfDay && (
                               <td
                                 rowSpan={daySlots.length}
-                                className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-10 border border-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
+                                className="bg-[#262A36] p-2 font-semibold text-[#9CA3AF] sticky left-0 z-10 border border-[#2E3345] border-b-[6px] border-b-[#2E3345] shadow-[1px_0_0_0_#2E3345] w-[60px] text-center"
                               >
                                 <div className="flex items-center justify-center w-full h-full align-middle tracking-[2px] transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>
                                   {day.toUpperCase()}
                                 </div>
                               </td>
                             )}
-                            <td className="border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345]">
+                            <td className={`border border-[#2E3345] p-3 text-xs font-semibold text-[#9CA3AF] sticky left-[60px] bg-[#262A36] z-10 whitespace-nowrap text-center shadow-[1px_0_0_0_#2E3345] ${isLastSlot ? 'border-b-[#2E3345] border-b-[6px]' : ''}`}>
                               {timeObj.display}
                             </td>
 
                             {/* If it's a Break Slot */}
                             {timeObj.type === 'break' && (
-                              <td colSpan={totalSems} className="border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden">
+                              <td colSpan={totalSems} className={`border border-[#2E3345] bg-[#1A1D26] p-2 text-center text-[#9CA3AF] font-bold tracking-[0.5em] uppercase text-sm h-[60px] relative overflow-hidden ${isLastSlot ? 'border-b-[#2E3345] border-b-[6px]' : ''}`}>
                                 <div className="absolute inset-0 flex items-center justify-center">
                                   --------- BREAK ---------
                                 </div>
@@ -382,7 +463,8 @@ export default function MasterGrid() {
                             {/* If it's a Normal Slot */}
                             {timeObj.type === 'slot' && branches.map((b: any) => {
                               const sems = semesters.filter((s: any) => s.branch_id === b.id);
-                              return sems.map((s: any) => {
+                              return sems.map((s: any, sIdx: number) => {
+                                const isLastSem = sIdx === sems.length - 1;
                                 const cellKey = `${s.id}-${timeIndex}`;
                                 if (coveredCells.has(cellKey)) {
                                   return null; // Skip rendering this cell since it's spanned over
@@ -414,7 +496,7 @@ export default function MasterGrid() {
                                     id={`cell-${day}-${time}-${s.id}`}
                                     key={`${day}-${time}-${s.id}`}
                                     rowSpan={maxSpan}
-                                    className={`border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-all duration-300 align-top ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-[#0D0F14] z-30 animate-pulse bg-yellow-400/20' : ''}`}
+                                    className={`border border-[#2E3345] p-2 relative min-h-[80px] cursor-pointer bg-[#0D0F14] hover:bg-[#1C1F2A] transition-all duration-300 align-top ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-[#0D0F14] z-30 animate-pulse bg-yellow-400/20' : ''} ${isLastSem ? 'border-r-[6px] border-r-[#2E3345]' : ''} ${(timeIndex + maxSpan === daySlots.length) ? 'border-b-[6px] border-b-[#2E3345]' : ''}`}
                                     onClick={() => handleCellClick(day, time, s.id)}
                                   >
                                     <div className="flex flex-col gap-1 w-full h-full">
@@ -835,15 +917,18 @@ function SemesterView({ semContext, timeslots, allocations, subjects, faculties,
 
   return (
     <div className="semester-view-enter" style={{ minWidth: '100%', display: 'inline-block' }}>
-      {/* Semester View Header */}
-      <div className="sem-view-header">
-        <button className="sem-back-btn" onClick={onBack}>
-          ← Back to Master
-        </button>
-        <div className="sem-view-title">
-          Viewing Timetable: <span>{semContext.branchName}</span> — <span>{semContext.semName}</span>
+      {/* Semester View Breadcrumbs */}
+      <div className="flex items-center justify-between px-4 py-2 mt-2 select-none">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#9CA3AF]">
+          <span className="hover:text-white transition cursor-pointer" onClick={onBack}>Master Grid</span>
+          <span className="text-[#3E4557]">/</span>
+          <span className="text-[#A78BFA]">{semContext.branchName}</span>
+          <span className="text-[#3E4557]">/</span>
+          <span className="text-[#E5E7EB]">{semContext.semName}</span>
         </div>
-        <div className="sem-view-badge">Semester View</div>
+        <div className="text-[10px] uppercase font-bold tracking-wider text-[#67E8F9] bg-[#67E8F9]/10 px-2 py-0.5 rounded border border-[#67E8F9]/20">
+          Semester View
+        </div>
       </div>
 
       {/* Semester Grid Table */}
